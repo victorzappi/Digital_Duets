@@ -1,0 +1,3 @@
+[submodule "AudioEngine"]
+	path = AudioEngine
+	url = https://github.com/victorzappi/AudioEngine
