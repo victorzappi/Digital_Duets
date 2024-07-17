@@ -1,0 +1,34 @@
+# uasage:
+# make -f makefileVic
+# or, to clean
+# make -f makefileVic clean
+
+CC=g++
+CPPFLAGS=-c -Wall -pthread
+LDFLAGS=-pthread
+LDLIBS=-lglfw3 -lGLEW -lGLU -lGL -lXrandr -lXxf86vm -lXi -lXinerama -lX11 -lXcursor -ldl -lm # some systems do not need all these libs...just in case
+SOURCES=main.cpp openGL_functions.cpp openGL_utils.cpp
+OBJECTS=$(SOURCES:.cpp=.o) # this takes all sources and swaps .cpp with .o
+EXECUTABLE=Drumhead_barebone
+
+all: $(SOURCES) $(EXECUTABLE)
+    
+# object linking rule...will be appplied after all objects are compiled with the next rule
+$(EXECUTABLE): $(OBJECTS) 
+	$(CC) $(LDFLAGS) $(OBJECTS) -o $@ $(LDLIBS)
+
+# object compilation rule, every .o found in the previous rule is compiled according to:
+.cpp.o:
+	$(CC) $(CPPFLAGS) $< -o $@ # operator $< swaps .o with .cpp in every object's name 
+
+# clean rule, wipe objects and executable
+clean:
+	rm -f $(OBJECTS) $(EXECUTABLE)
+
+
+# one shot command is:
+#  g++ -o Drumhead_barebone -Wall -pthread main.cpp openGL_functions.cpp openGL_utils.cpp -lglfw3 -lGLEW -lGLU -lGL -lXrandr -lXxf86vm -lXi -lXinerama -lX11 -lXcursor -ldl -lm
+
+# to run the executable you most likely you have to add the executable flag to the file, with:
+# sudo chmod ugo+x Drumhead_barebone
+
