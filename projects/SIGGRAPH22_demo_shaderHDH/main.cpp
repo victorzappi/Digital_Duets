@@ -51,7 +51,7 @@ int domainSize[2] = {238, 133};//{94, 52};//m20 //{126, 70};//m15 //{158, 88};//
 float magnifier   = 4;
 int rate_mul      = 1;
 bool fullscreen   = false;
-int monitorIndex  = 1;
+int monitorIndex  = 0;
 //----------------------------------------
 
 
@@ -148,7 +148,7 @@ HyperDrumSynth *hyperDrumSynth;
 //click vars and settings
 AudioFile *clickTrack; // extern in controls.cpp
 int presetClickIndex = 2; // extern in controls.cpp
-string clickTrackPath = "audiofiles/99_siggraph_click_105.wav";
+string clickTrackPath = getCurrentFilePath() + "/audiofiles/99_siggraph_click_105.wav";
 //----------------------------------------
 
 
@@ -414,9 +414,9 @@ int initAudioThread() {
 
 	// init click track
 	clickTrack = new AudioFile();
-	clickTrack->init(clickTrackPath, rate, period_size, 0.4);
-	clickTrack->setAdvanceType(adv_loop_);
-	clickTrack->stop(); // triggered in controls.cpp, when preset with metronome is loaded
+	// clickTrack->init(clickTrackPath, rate, period_size, 0.4);
+	// clickTrack->setAdvanceType(adv_loop_);
+	// clickTrack->stop(); // triggered in controls.cpp, when preset with metronome is loaded
 
 	// set audio parameters
 	if(device=="") {
@@ -440,7 +440,7 @@ int initAudioThread() {
 	// last touch
 	audioEngine.initEngine();
 	audioEngine.addAudioModule(hyperDrumSynth);
-	audioEngine.addAudioModule(clickTrack);
+	// audioEngine.addAudioModule(clickTrack);
 
 	return 0;
 }

@@ -149,7 +149,7 @@ HyperDrumSynth *hyperDrumSynth;
 //click vars and settings
 AudioFile *clickTrack; // extern in controls.cpp
 int presetClickIndex = 2; // extern in controls.cpp
-string clickTrackPath = "audiofiles/99_siggraph_click_105.wav";
+string clickTrackPath =  getCurrentFilePath() + "/audiofiles/99_siggraph_click_105.wav";
 float clickLevel = 0.1;
 //----------------------------------------
 
