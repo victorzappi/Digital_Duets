@@ -47,7 +47,7 @@ bool multitouch = true;
 //----------------------------------------
 // domain variables, all externs in defineDomain.cpp and controls.cpp
 //----------------------------------------
-int domainSize[2] = {238, 133};//{94, 52};//m20 //{126, 70};//m15 //{158, 88};//m12 //{190, 106};//m10  //{238, 133};//m8 //{318, 178};//m6
+int domainSize[2] = {238, 133};
 float magnifier   = 4;
 int rate_mul      = 1;
 bool fullscreen   = false;

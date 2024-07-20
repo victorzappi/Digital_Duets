@@ -777,7 +777,7 @@ void ImplicitFDTD::initImage(int domainWidth, int domainHeigth) {
 		// do we have enough space?
 		while(neededFrags > audioRowW) {
 			// if not, lets add rows, always an even number in total!
-			audioRowsUsed *= 2; //VIC += ?
+			audioRowsUsed *= 2;
 			audioRowH   = audioRowsUsed;
 			neededFrags = numOfAudioFrags/audioRowsUsed;
 		}
@@ -786,7 +786,7 @@ void ImplicitFDTD::initImage(int domainWidth, int domainHeigth) {
 
 		// please have a look at fillVertices() method for a graphical explanation of these positioning
 	}
-
+	
 	textureHeight += audioRowH+ISOLATION_LAYER; // put extra line to isolate frame from audio [to avoid interferences]
 
 	singleRowAudioCapacity = audioRowW*4; // this is the actual number of samples that we can store in each audio row [NOT FRAGS! each frag contains 4 samples!]

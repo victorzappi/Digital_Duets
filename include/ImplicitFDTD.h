@@ -237,7 +237,7 @@ protected:
 	//int domainShift[2];
 	//int textureShift[2];
 	//int singleRowAudioCapacity;
-	//int audioRowsUsed;
+	int audioRowsUsed;
 };
 
 //VIC this should be useless, since super class does the same, but there is a bug! pixelDrawer is always seen as NULL in FDTD::getWindow(size), even after initialization [and i debugged...it is initialized and different from NULL!]

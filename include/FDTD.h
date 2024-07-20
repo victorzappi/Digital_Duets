@@ -185,7 +185,7 @@ protected:
 	int domainShift[2];
 	int textureShift[2];
 	int singleRowAudioCapacity;
-	int audioRowsUsed;
+	int audioRowsUsed; //VIC this is here old for old projets... it should be removed from HyperDrumhead.cpp files
 
 #if defined(TIME_RT_FBO) != defined(TIME_RT_RENDER)
 	// time test

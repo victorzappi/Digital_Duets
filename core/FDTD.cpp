@@ -96,7 +96,6 @@ FDTD::FDTD() : TextureFilter(){
     textureShift[0] = 0;
     textureShift[1] = 0;
     singleRowAudioCapacity = -1;
-	audioRowsUsed   = -1;
 
 #if defined(TIME_RT_FBO) != defined(TIME_RT_RENDER)
 	// time test
@@ -603,7 +602,7 @@ void FDTD::initImage(int domainWidth, int domainHeigth) {
 	// each pixel contains 4 samples.
 	// there must be enough space to store all the buffer samples requested by audio card in one period,
 	audioRowW = gl_width*2; // whole texture width - excitation and excitation follow up pixels, cos by default they are on same row as audio
-	audioRowH = audioRowsUsed = 1;
+	audioRowH = 1;
 	// so, now last row is numOfStates excitation pixels, numOfStates excitation follow up pixels and rest is audio row
 
 	// if audio row space is not enough to store all the audio samples...
@@ -614,13 +613,12 @@ void FDTD::initImage(int domainWidth, int domainHeigth) {
 		int numOfAudioFrags = period_size/4;
 
 		// this is the number of frags needed on each row for an equal repartition of the audio samples
-		int neededFrags = numOfAudioFrags/audioRowsUsed;
+		int neededFrags = numOfAudioFrags/audioRowH;
 		// do we have enough space?
 		while(neededFrags > audioRowW) {
-			// if not, lets add rows, always an even number in total!
-			audioRowsUsed *= 2; //VIC += ?
-			audioRowH   = audioRowsUsed;
-			neededFrags = numOfAudioFrags/audioRowsUsed;
+			// if not, lets add rows
+			audioRowH *= 2; // perios_size is a power of 2, hence by doubling up we are sure that we can split the samples evenly on the rows [i.e., all row has same number of samples] 
+			neededFrags = numOfAudioFrags/audioRowH; 
 		}
 		// if we have enough space, let's fix the width that we need to contain all samples
 		audioRowW = neededFrags;
@@ -1263,7 +1261,7 @@ void FDTD::getSamples(int numSamples) {
 		//---------------------------------------------------------------------------------------------------------------------------
 		// get data
 		//---------------------------------------------------------------------------------------------------------------------------
-		int readPixelsH = audioRowsUsed;
+		int readPixelsH = audioRowH;
 		int readPixelsW;
 
 		if(audioRowH == 1)
@@ -1368,7 +1366,7 @@ void FDTD::initPixelReader() {
 	pbo_allTexture.unbind(); // bind this only if need to debug whole texture
 
 	// audio quad
-	pbo.init( sizeof(float)*period_size);
+	pbo.init( sizeof(float)*audioRowW*audioRowH*4);
 }
 
 void FDTD::computeDeltaS(){
