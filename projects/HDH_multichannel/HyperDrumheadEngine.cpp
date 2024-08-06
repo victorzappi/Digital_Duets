@@ -131,12 +131,15 @@ void HDH_AudioEngine::initRender() {
 }
 
 void HDH_AudioEngine::render(float sampleRate, int numOfSamples, int numOutChannels, double **framebufferOut, int numInChannels, double **framebufferIn) {
+	(void)sampleRate; // to mute warning 
+	(void)numInChannels; // to mute warning 
+	(void)numOutChannels; // to mute warning 
 
 	//hdh synth
 	if(numOfAudioModulesInOut==1) {
 		double **inBuff;
 		if(isFullDuplex)
-			inBuff = framebufferIn;
+			inBuff = framebufferIn; // pass all input channels, the module will deal with them later... [this is an hidiosyncratic approach]
 		else
 			inBuff = silenceBuff; //...by setting silent input buffers
 
@@ -165,6 +168,7 @@ void HDH_AudioEngine::cleanUpRender() {
 
 //VIC i can use this simplified method cos i know that on this machine [which is little endian] integers are 32 bits and i am using 32 bit integers as samples!
 void HDH_AudioEngine::fromRawToFloat_int(snd_pcm_uframes_t offset, int numSamples) {
+	(void)offset; // to mute warning
 	int *insamples = (int *)capture.rawSamples;
 	for(int n = 0; n < numSamples; n++) {
 			for(unsigned int chn = 0; chn < capture.channels; chn++) {
@@ -174,6 +178,7 @@ void HDH_AudioEngine::fromRawToFloat_int(snd_pcm_uframes_t offset, int numSample
 }
 
 void HDH_AudioEngine::fromFloatToRaw_int(snd_pcm_uframes_t offset, int numSamples) {
+	(void)offset; // to mute warning
 	int *outsamples = (int *)playback.rawSamples;
 	for(int n = 0; n < numSamples; n++) {
 		for(unsigned int chn = 0; chn < playback.channels; chn++) {

@@ -39,7 +39,7 @@ string getCurrentFilePath() {
 //****************************************
 bool fullDuplex = false;
 bool useTouchscreen = false;
-bool useOsc = true;
+bool useOsc = false;
 bool useMidi = false;
 
 
@@ -170,12 +170,12 @@ vector<float> presetCyclerProbabilities = {
 //----------------------------------------
 // audio variables
 //----------------------------------------
-string playbackCardName = "Scarlett 18i8 USB";
+string playbackCardName = "";//@VIC "Scarlett 18i8 USB";
 snd_pcm_format_t playbackFormat = SND_PCM_FORMAT_S32;    	// sample playbackFormat
-unsigned int playbackChannels = 8;	    // count of playbackChannels
-string captureCardName = "Scarlett 18i8 USB";
+unsigned int playbackChannels = 2;//@VIC 8;	    // count of playbackChannels
+string captureCardName = "";//@VIC "Scarlett 18i8 USB";
 snd_pcm_format_t captureFormat = SND_PCM_FORMAT_S32;    	// sample captureFormat
-unsigned int captureChannels = 10;	    // count of playbackChannels
+unsigned int captureChannels = 1;//@VIC 10;	    // count of playbackChannels
 unsigned int rate = 44100;      // stream rate, extern
 int period_size = 512;//128;     		// period length in frames
 int buffer_size = 2*period_size;		    // ring buffer length in frames [contains period]
@@ -298,7 +298,7 @@ int initDrumSynth(float ***domainPixels) {
 	unsigned short inChannels = 1; 
 	unsigned short inChnOffset = 0; 
 	unsigned short outChannels = 2;
-	unsigned short outChnOffset= 2;
+	unsigned short outChnOffset= 0; //@VIC 2;
 	hyperDrumSynth->init(shaderLocation, domainSize, rate, rate_mul, period_size, excitationLevel, magnifier, exciteFileFolder, listenerCoord, 
 						 inChannels, inChnOffset, outChannels, outChnOffset);
 	if(hyperDrumSynth->setDomain(excitationCoord, excitationDim, domainPixels, builtinPreset) != 0)

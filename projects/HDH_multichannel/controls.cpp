@@ -339,7 +339,7 @@ void ctrlC_handler(int s){
 
 
 //TODO revise this! much better implementation
-double expMapping(double expMin, double expMax, double expRange, double expNorm,
+double expMapping(double expMin/* , double expMax */, double expRange, double expNorm,
 				 double inMin, double inMax, double inRange,
 				 double in, double outMin, double outRange) {
 	if(in > inMax)
@@ -359,7 +359,7 @@ void setMasterVolume(double v, bool exp) {
 	{
 		//VIC kludge for now, until expMapping is revised!
 		if(v>0)
-			masterVolume = expMapping(expMinMasterVol, expMaxMasterVol, expRangeMasterVol, expNormMasterVol, 0, 1, 1, v, 0, 1);
+			masterVolume = expMapping(expMinMasterVol/* , expMaxMasterVol */, expRangeMasterVol, expNormMasterVol, 0, 1, 1, v, 0, 1);
 		else
 			masterVolume = 0;
 	}
@@ -1222,14 +1222,14 @@ void openFrame() {
 
 
 inline void setAreaVolPress(double press, int area) {
-	double vol = expMapping(expMin, expMax, expRange, expNorm, minPress, maxPress, rangePress, press, minVolume, rangeVolume);
+	double vol = expMapping(expMin/* , expMax */, expRange, expNorm, minPress, maxPress, rangePress, press, minVolume, rangeVolume);
 	setAreaExcitationVolumeFixed(area, vol*areaExcitationVol[area]*masterVolume);
 	/*printf("p: %f\n", press);
 	printf("***vol: %f***  [master volume: %2.f]\n", vol, masterVolume);*/
 }
 
 /*inline*/ void modulateAreaVolPress(double press, int area) {
-	areaModulatedVol[area] = expMapping(expMin, expMax, expRange, expNorm, minPress, maxPress, rangePress, press, minVolume, rangeVolume);
+	areaModulatedVol[area] = expMapping(expMin/* , expMax */, expRange, expNorm, minPress, maxPress, rangePress, press, minVolume, rangeVolume);
 	setAreaExcitationVolume(area, areaModulatedVol[area]*areaExcitationVol[area]*masterVolume);
 	//printf("***areaModulatedVol[%d]: %f***  [master volume: %2.f]\n", area, areaModulatedVol[area], masterVolume);
 
@@ -1241,7 +1241,7 @@ inline void setAreaImpPress(double press, int area) {
 
 	double pressoInput = maxPressImp*0.6 + maxPressImp*0.4*press/maxPressImp; // kludge to give sense of somewhat consistent velocity via pressure
 
-	double vol = expMapping(expMinImp, expMaxImp, expRangeImp, expNormImp, minPressImp, maxPressImp, rangePressImp, pressoInput, minVolumeImp, rangeVolumeImp);
+	double vol = expMapping(expMinImp/* , expMaxImp */, expRangeImp, expNormImp, minPressImp, maxPressImp, rangePressImp, pressoInput, minVolumeImp, rangeVolumeImp);
 	setAreaExcitationVolumeFixed(area, vol*areaExcitationVol[area]*masterVolume);
 	//printf("p: %f\n", press);
 /*	printf("***press: %f***\n", press);
@@ -1270,7 +1270,7 @@ inline void setAreaImpPress(double press, int area) {
 inline float computeNextAreaParamPress(double press, int area, float range, float minVal, float maxVal) {
 	clampValue<double>(press, minPress, maxPress);
 
-	float delta/* = expMapping(expMin, expMax, expRange, expNorm, minPress, maxPress, rangePress, press, 0, pressFinger_range[area][mode])*/;
+	float delta;// = expMapping(expMin/*, expMax*/, expRange, expNorm, minPress, maxPress, rangePress, press, 0, pressFinger_range[area][mode]);
 	delta = (press-minPress)/rangePress;
 	delta *= range;
 
@@ -1899,7 +1899,7 @@ bool assignPreFinger(int slot, int area, int *coord=NULL) {
 
 
 
-inline bool checkPreFinger(int slot, int area, int *coord=NULL) {
+inline bool checkPreFinger(int slot/*, int area , int *coord=NULL */) {
 
 	return (preFingersTouch_area[slot] != -1);
 
@@ -2207,7 +2207,7 @@ void handleNewTouch(int currentSlot, int touchedArea, int coord[2]) {
 
 
 		// check if this is first touch on this area and there are special modifiers linked to first touch [movement or pressure]
-		if( checkPreFinger(currentSlot, touchedArea, coord/*, newTouch[currentSlot]*/) ) {
+		if( checkPreFinger(currentSlot/*, touchedArea , coord *//*, newTouch[currentSlot]*/) ) {
 			modifierActionsPreFinger(currentSlot, touchedArea, coord[0], coord[1], (float)pressure[currentSlot]);
 			if( preFingersTouch_press[currentSlot]==press_prop && areaPressOnHold[touchedArea][0])
 				areaPressOnHold[touchedArea][0] = false;
@@ -2281,7 +2281,7 @@ void handleNewTouch(int currentSlot, int touchedArea, int coord[2]) {
 
 			}
 			// otherwise we release all the excitations that were stuck there and GO ON with other checks [we actually release hold during those further checks]
-			else if(!checkPreFinger(currentSlot, touchedArea, coord) && keepHoldArea_touch[touchedArea]==-1) {
+			else if(!checkPreFinger(currentSlot/*, touchedArea, coord */) && keepHoldArea_touch[touchedArea]==-1) {
 
 				dampAreaExcitation(touchedArea); // stop excitation
 				for(int touch : triggerArea_touches[touchedArea])
@@ -2295,7 +2295,7 @@ void handleNewTouch(int currentSlot, int touchedArea, int coord[2]) {
 
 		// then we move on with the usual logic for continuous controllers not on hold
 		// prefinger?
-		if( checkPreFinger(currentSlot, touchedArea, coord) ) {
+		if( checkPreFinger(currentSlot/*, touchedArea, coord */) ) {
 			modifierActionsPreFinger(currentSlot, touchedArea, coord[0], coord[1], (float)pressure[currentSlot]);
 			// to release pressure controls that are on hold
 			if( preFingersTouch_press[currentSlot]==press_prop && areaPressOnHold[touchedArea][0])
@@ -2621,7 +2621,7 @@ void handleTouchDrag(int currentSlot, int touchedArea, int coord[2]) {
 
 	if(prevTouchedArea[currentSlot] != touchedArea && prevTouchedArea[currentSlot]<AREA_NUM) {
 
-		bool wasPrefinger  = checkPreFinger(currentSlot, prevTouchedArea[currentSlot]);
+		bool wasPrefinger  = checkPreFinger(currentSlot/*, prevTouchedArea[currentSlot]*/);
 		bool wasPostFinger = checkPostFinger(currentSlot, prevTouchedArea[currentSlot], true);
 
 		// general case is release...
@@ -2675,7 +2675,7 @@ void handleTouchDrag(int currentSlot, int touchedArea, int coord[2]) {
 
 	if(checkPercussive(touchedArea)) {
 		// check if this is the first touch on this area and it's linked to a modifier [movement or pressure]
-		if( checkPreFinger(currentSlot, touchedArea) )
+		if( checkPreFinger(currentSlot/*, touchedArea*/) )
 			modifierActionsPreFinger(currentSlot, touchedArea, coord[0], coord[1], (float)pressure[currentSlot]);
 		// detect drag that is instead a second touch [displax bug]
 		else if(!extraTouchDone[currentSlot]) { // only one per slide of same touch
@@ -2695,7 +2695,7 @@ void handleTouchDrag(int currentSlot, int touchedArea, int coord[2]) {
 		bool isTriggerTouch = (std::find(triggerArea_touches[touchedArea].begin(), triggerArea_touches[touchedArea].end(), currentSlot) != triggerArea_touches[touchedArea].end());
 
 		// check if this is the first touch on this area and it's linked to a modifier [movement or pressure]
-		if( checkPreFinger(currentSlot, touchedArea) /*&& keepHoldArea_touch[touchedArea]==-1*/)
+		if( checkPreFinger(currentSlot/*, touchedArea*/) /*&& keepHoldArea_touch[touchedArea]==-1*/)
 			modifierActionsPreFinger(currentSlot, touchedArea, coord[0], coord[1], (float)pressure[currentSlot]);
 		// the touch is the triggering touch, the one that has taken the area
 		else if(isTriggerTouch || keepHoldArea_touch[touchedArea]==currentSlot) {
@@ -2749,7 +2749,7 @@ void handleTouchDrag(int currentSlot, int touchedArea, int coord[2]) {
 
 			//VIC dist double boundProx = 1-dist_getBoundDist(coord[0], coord[1]);
 			//VIC dist modulateAreaDampProx(boundProx, touchedArea);
-			//float delta = expMapping(expMin*0.8, expMax*0.8, expRange, expNorm, 0, 1, 1, boundProx, 0, pressFinger_range[touchedArea][press_dmp]);
+			//float delta = expMapping(expMin*0.8/* , expMax*0.8 */, expRange, expNorm, 0, 1, 1, boundProx, 0, pressFinger_range[touchedArea][press_dmp]);
 			//changeAreaDamp(delta, false, touchedArea);
 			//printf("boundProx: %f, delta: %f\n", boundProx, delta);
 
@@ -2762,7 +2762,7 @@ void handleTouchDrag(int currentSlot, int touchedArea, int coord[2]) {
 				modifierActionsPostFinger(currentSlot, touchedArea, coord[0], coord[1], (float)pressure[currentSlot]); // not new touch, not impulse, post finger [or more]
 		}
 	}
-	else if( checkPreFinger(currentSlot, touchedArea) ) {
+	else if( checkPreFinger(currentSlot/*, touchedArea*/) ) {
 		modifierActionsPreFinger(currentSlot, touchedArea, coord[0], coord[1], (float)pressure[currentSlot]); // not new touch, not impulse, post finger [or more]
 	}
 	// else check if it is post finger and if linked to movement -> we check BUT don't assign
@@ -2835,7 +2835,7 @@ void mouseLeftDrag(float xpos, float ypos) {
 	prevTouchedArea[mouseTouch] = touchedArea;
 }
 
-void mouseLeftRelease(float xpos, float ypos) {
+void mouseLeftRelease(/* float xpos, float ypos */) {
 	int mouseTouch = touchSlots-1;
 
 	handleTouchRelease(mouseTouch);
@@ -2851,6 +2851,7 @@ void mouseRightPressOrDrag(float xpos, float ypos) {
 
 // mouse buttons actions
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
+	(void)mods; // to mute warning
 	double xpos;
 	double ypos;
 
@@ -2877,7 +2878,7 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 			//printf("left mouse pressed\n");
     	} else if(action == GLFW_RELEASE) {
     		mouseLeftPressed = false; // stop dragging
-    		mouseLeftRelease(mousePos[0], mousePos[1]);
+    		mouseLeftRelease(/* mousePos[0], mousePos[1] */);
     		//printf("left mouse released\n");
     	}
     }
@@ -2906,6 +2907,7 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 }
 
 void cursor_position_callback(GLFWwindow *window, double xpos, double ypos) {
+	(void)window; // to mute warning
 
 	// even if we expect this callback to happen only when the mouse cursor moves on the window
 	// sometimes we get callbacks also slightly outside of the window, especially when a click is dragged
@@ -2931,6 +2933,7 @@ void cursor_position_callback(GLFWwindow *window, double xpos, double ypos) {
 }
 
 void cursor_enter_callback(GLFWwindow* window, int entered) {
+	(void)window; // to mute warning
     if(entered)
     	return;
 
@@ -2941,6 +2944,7 @@ void cursor_enter_callback(GLFWwindow* window, int entered) {
 }
 
 void win_pos_callback(GLFWwindow* window, int posx, int posy) {
+	(void)window; // to mute warning
 	windowPos[0] = posx;
 	windowPos[1] = posy;
 	//printf("Win pos (%d, %d)\n", windowPos[0], windowPos[1]);
