@@ -45,5 +45,8 @@ bin/
 # -macOS
 .DS_Store
 
+# OpenGL log files
+gl.log
+
 # Temporary local projects
 _projects/

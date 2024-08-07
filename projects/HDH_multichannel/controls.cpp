@@ -79,7 +79,7 @@ bool controlsShouldStop = false;
 
 
 
-double areaModulatedVol[AREA_NUM];
+double *exChannelModulatedVol = nullptr;
 
 int deltaPos        = 1;
 double deltaVolume = 0.05;
@@ -112,7 +112,12 @@ const float maxProp = 0.5;
 const float minProp = 0.0001;
 
 
-int areaExciteID[AREA_NUM];
+int *exChannelExciteID = nullptr;
+list<int> *triggerChannel_touches = nullptr; // to keep track of the channel of each finger that triggered sound
+list<pair<int, int>> **triggerChannel_touch_coords = nullptr; // as well as position...note it's a pointer cos more excitations at the same time if area's percussive
+int **triggerTouch_channel; // reverse
+
+
 list<int> triggerArea_touches[AREA_NUM]; // to keep track of what finger triggered every area
 list<pair<int, int>> *triggerArea_touch_coords[AREA_NUM]; // as well as position...note it's a pointer cos more excitations at the same time if area's percussive
 int *triggerTouch_area; // reverse
@@ -309,6 +314,9 @@ bool lockMouseY = false;
 
 int areaIndex = 0;
 
+int exChannelIndex = 0;
+int exChannels = -1;
+
 float bgain = 1;
 float deltaBgain = 0.05;
 
@@ -316,7 +324,7 @@ bool showAreas = false;
 //----------------------------------------
 
 
-string *excitationNames;
+string *excitationNames = nullptr;
 
 extern bool drumSynthInited;
 //----------------------------------------
@@ -457,7 +465,7 @@ void setExcitationCell(int coordX, int coordY) {
 	//VIC dist float type = hyperDrumSynth->getCellType(coordX, coordY);
 	//VIC dist bool wasBoundary = (type==HyperDrumhead::cell_boundary)||(type==HyperDrumhead::cell_dead);
 
-	if ( hyperDrumSynth->setCellType(coordX, coordY, HyperDrumhead::cell_excitation)!=0 ) // leave area as it is [safer?]
+	if ( hyperDrumSynth->setCellType(coordX, coordY, HyperDrumhead::cell_excitation, exChannelIndex)!=0 ) // leave area as it is [safer?]
 	//hyperDrumSynth->setCell(coordX, coordY, areaIndex, HyperDrumhead::cell_excitation); // changes also area [more prone to human errors?]
 		return;
 
@@ -473,7 +481,7 @@ void setExcitationCell(int area, int coordX, int coordY) {
 	//VIC dist float type = hyperDrumSynth->getCellType(coordX, coordY);
 	//VIC dist bool wasBoundary = (type==HyperDrumhead::cell_boundary)||(type==HyperDrumhead::cell_dead);
 
-	if( hyperDrumSynth->setCell(coordX, coordY, area, HyperDrumhead::cell_excitation)!=0 ) // changes also area [more prone to human errors?]
+	if( hyperDrumSynth->setCell(coordX, coordY, /* area */-1, HyperDrumhead::cell_excitation, exChannelIndex)!=0 ) // changes also area [more prone to human errors?]
 		return;
 
 	// add new excitation to the list and update distances
@@ -490,7 +498,7 @@ void setFirstMovingExciteCoords(int area, int coordX, int coordY) {
 
 	//printf("setFirstMovingExciteCoords %d %d %d\n", area, coordX, coordY);
 
-	hyperDrumSynth->setFirstMovingExciteCoords(area, coordX, coordY);
+	hyperDrumSynth->setFirstMovingExciteCoords(exChannelIndex, coordX, coordY);
 
 	// add new excitation to the list and update distances
 	//VIC dist dist_addExcite(coordX, coordY);
@@ -504,7 +512,7 @@ void setNextMovingExciteCoords(int area, int coordX, int coordY) {
 
 	//printf("setNextMovingExciteCoords %d %d %d\n", area, coordX, coordY);
 
-	hyperDrumSynth->setNextMovingExciteCoords(area, coordX, coordY);
+	hyperDrumSynth->setNextMovingExciteCoords(exChannelIndex, coordX, coordY);
 
 }
 
@@ -625,39 +633,39 @@ void switchExcitationType(drumEx_type exciteType) {
 	printf("Current excitation type: %s\n", excitationNames[exciteType].c_str());
 }
 */
-bool checkPercussive(int area) {
-	return hyperDrumSynth->getAreaExcitationIsPercussive(area);
+bool checkPercussive(int channel) {
+	return hyperDrumSynth->getAreaExcitationIsPercussive(channel);
 }
 
-bool checkPercussive(int area, int id) {
-	return hyperDrumSynth->getAreaExcitationIsPercussive(area, id);
+bool checkPercussive(int channel, int id) {
+	return hyperDrumSynth->getAreaExcitationIsPercussive(channel, id);
 }
 
-void setAreaExcitationID(int area, int id) {
-	bool wasPercussive = checkPercussive(area);
+void setChannelExcitationID(int channel, int id) {
+	bool wasPercussive = checkPercussive(channel);
 
-	hyperDrumSynth->setAreaExcitationID(area, id);
-	areaExciteID[area] = hyperDrumSynth->getAreaExcitationId(area);
+	hyperDrumSynth->setAreaExcitationID(channel, id);
+	exChannelExciteID[channel] = hyperDrumSynth->getAreaExcitationId(channel);
 
 	// if we switched to a percussive excitation...
-	if(checkPercussive(area)) {
-		areaModulatedVol[area] = 1; // ...reset, cos otherwise last modulated value might persist
+	if(checkPercussive(channel)) {
+		exChannelModulatedVol[channel] = 1; // ...reset, cos otherwise last modulated value might persist
 	}
 	// otherwise, if we switched from a percussive one to a non percussive...
 	else if(wasPercussive) {
 		// ...remove all previous trigger touches
-		for(int touch : triggerArea_touches[area]) {
-			for(pair<int, int> coord : triggerArea_touch_coords[area][touch]) {
+		for(int touch : triggerChannel_touches[channel]) {
+			for(pair<int, int> coord : triggerChannel_touch_coords[channel][touch]) {
 				resetCell(coord.first, coord.second);
 				//printf("%d %d removed\n", coord.first, coord.second);
 			}
 		}
 	}
-	printf("Area %d excitation type: %s\n", area, excitationNames[areaExciteID[area]].c_str());
+	printf("Excitation channel %d type: %s\n", channel, excitationNames[exChannelExciteID[channel]].c_str());
 }
 
-void setAreaExcitationID(int id) {
-	setAreaExcitationID(areaIndex, id);
+void setChannelExcitationID(int id) {
+	setChannelExcitationID(exChannelIndex/* areaIndex */, id);
 
 	/*int currentSlot = triggerArea_touch[areaIndex];
 	triggerArea_touch[areaIndex] = -1; // reset area
@@ -742,7 +750,7 @@ void changeAreaExcitationVolume(double delta) {
 	double nextVol =  areaExcitationVol[areaIndex] + deltaVolume*delta;
 	areaExcitationVol[areaIndex] = (nextVol>=0) ? nextVol : 0;
 
-	hyperDrumSynth->setAreaExcitationVolume(areaIndex, areaExcitationVol[areaIndex]*areaModulatedVol[areaIndex]*masterVolume); // modulated volume to make this transition smooth while on continuous excitation
+	hyperDrumSynth->setAreaExcitationVolume(areaIndex, areaExcitationVol[areaIndex]*exChannelModulatedVol[areaIndex]*masterVolume); // modulated volume to make this transition smooth while on continuous excitation
 	printf("Area %d excitation volume: %.2f [master volume: %2.f]\n", areaIndex, areaExcitationVol[areaIndex], masterVolume);
 }
 
@@ -850,7 +858,7 @@ void changeAreaIndex(int index) {
 		printf("Material:\n");
 		printf("\tPropagation [pitch]: %f [press range: %f]\n", areaProp[areaIndex], pressFinger_range[areaIndex][press_prop]);
 		printf("\tDamping [resonance]: %f [press range: %f]\n", areaDamp[areaIndex], pressFinger_range[areaIndex][press_dmp]);
-		printf("\tExcitation: %s [id %d%s]\n", excitationNames[areaExciteID[areaIndex]].c_str(), areaExciteID[areaIndex], (checkPercussive(areaIndex)) ? ", percussive" : "");
+		printf("\tExcitation: %s [id %d%s]\n", excitationNames[exChannelExciteID[areaIndex]].c_str(), exChannelExciteID[areaIndex], (checkPercussive(areaIndex)) ? ", percussive" : "");
 		printf("Excitation:\n");
 		printf("\tExcitation volume: %f\n", areaExcitationVol[areaIndex]);
 		printf("\tExcitation filter cut-off: %f dB\n", areaExLowPassFreq[areaIndex]);
@@ -863,6 +871,19 @@ void changeAreaIndex(int index) {
 	}
 	else
 		printf("Cannot switch to Area index %d cos available areas' indices go from 0 to %d /:\n", index, AREA_NUM-1);
+}
+
+void changeExChannel(int channel) {
+	if(channel <exChannels) {
+		exChannelIndex = channel;
+		int id = hyperDrumSynth->getAreaExcitationId(exChannelIndex);
+		printf("Current excitation channel: %d\n", exChannelIndex);
+		printf("\texcitation index: %d\n", id);
+		printf("\texcitation name: %s\n", excitationNames[id].c_str());
+	}
+	else
+		printf("Cannot switch to excitation channel %d cos available channels' indices go from 0 to %d /:\n", channel, channel-1);
+
 }
 
 void setBgain(float gain) {
@@ -1129,7 +1150,7 @@ void savePreset() {
 		frame.exVol[i] = areaExcitationVol[i];
 		frame.exFiltFreq[i] = areaExLowPassFreq[i];
 		//frame.exFreq[i] = areaExFreq[i];
-		frame.exType[i] = areaExciteID[i];
+		frame.exType[i] = exChannelExciteID[i];
 		frame.listPos[0][i] = areaListenerCoord[i][0];
 		frame.listPos[1][i] = areaListenerCoord[i][1];
 
@@ -1160,7 +1181,7 @@ void savePreset() {
 void openFrame() {
 	return;
 	/*string filename = "test.frm";
-	int retval = hyperDrumSynth->openFrame(AREA_NUM, filename, areaDamp, areaProp, areaExcitationVol, areaExLowPassFreq, areaExFreq, areaExciteID,
+	int retval = hyperDrumSynth->openFrame(AREA_NUM, filename, areaDamp, areaProp, areaExcitationVol, areaExLowPassFreq, areaExFreq, exChannelExciteID,
 										   areaListenerCoord, (int *)firstPreFingerMotion, firstPreFingerMotionNegated, (int *)firstPreFingerPress, (int *)postFingerMotion, postFingerMotionNegated, (int *)postFingerPress,
 										   pressFinger_range, pressFinger_delta, press_cnt);
 
@@ -1177,14 +1198,14 @@ void openFrame() {
 
 	for(int i=0; i<frame->numOfAreas; i++) {
 		// update local control params
-		setAreaExcitationID(i, frame->exType[i]);
+		setChannelExcitationID(i, frame->exType[i]);
 		areaListenerCoord[i][0]  = frame->listPos[0][i];
 		areaListenerCoord[i][1]  = frame->listPos[1][i];
 		areaDamp[i]        = frame->damp[i];
 		areaProp[i] = frame->prop[i];
 		areaExcitationVol[i]     = frame->exVol[i];
 		areaExLowPassFreq[i] = frame->exFiltFreq[i];
-		areaExciteID[i]     =  frame->exType[i];
+		exChannelExciteID[i]     =  frame->exType[i];
 		// listener pos is not useful
 
 		firstPreFingerMotion[i]    = (motionFinger_mode)frame->firstFingerMotion[i];
@@ -1229,9 +1250,9 @@ inline void setAreaVolPress(double press, int area) {
 }
 
 /*inline*/ void modulateAreaVolPress(double press, int area) {
-	areaModulatedVol[area] = expMapping(expMin/* , expMax */, expRange, expNorm, minPress, maxPress, rangePress, press, minVolume, rangeVolume);
-	setAreaExcitationVolume(area, areaModulatedVol[area]*areaExcitationVol[area]*masterVolume);
-	//printf("***areaModulatedVol[%d]: %f***  [master volume: %2.f]\n", area, areaModulatedVol[area], masterVolume);
+	exChannelModulatedVol[area] = expMapping(expMin/* , expMax */, expRange, expNorm, minPress, maxPress, rangePress, press, minVolume, rangeVolume);
+	setAreaExcitationVolume(area, exChannelModulatedVol[area]*areaExcitationVol[area]*masterVolume);
+	//printf("***exChannelModulatedVol[%d]: %f***  [master volume: %2.f]\n", area, exChannelModulatedVol[area], masterVolume);
 
 	// stores last pressure, in case we pass it to other area via preset change and hold
 	areaLastPressure[area] = pressure[triggerArea_touches[area].front()];
@@ -1360,7 +1381,7 @@ void setAreaLowPassFilterFreqNorm(int area, double in) {
 
 void setAreaVolNorm(int area, double in) {
 	double press = maxPressure*in;
-	if(areaExciteID[area] == 0)
+	if(exChannelExciteID[area] == 0)
 		setAreaImpPress(press, area);
 	else
 		setAreaVolPress(press, area);
@@ -1962,11 +1983,11 @@ void updateControlStatus(hyperDrumheadFrame *frame) {
 	//printf("update control status\n");
 	int prevExciteID[AREA_NUM] = {0};
 	for(int i=0; i<frame->numOfAreas; i++) {
-		prevExciteID[i] = areaExciteID[i];
+		prevExciteID[i] = exChannelExciteID[i];
 
 		// update local control params
-		/*setAreaExcitationID(i, frame->exType[i]);*/
-		areaExciteID[i] = frame->exType[i];
+		/*setChannelExcitationID(i, frame->exType[i]);*/
+		exChannelExciteID[i] = frame->exType[i];
 		areaListenerCoord[i][0]  = frame->listPos[0][i];
 		areaListenerCoord[i][1]  = frame->listPos[1][i];
 		areaDamp[i]        = frame->damp[i];
@@ -2060,7 +2081,7 @@ void updateControlStatus(hyperDrumheadFrame *frame) {
 
 			// which can be different from previous area it was touching!
 			int newAreaID = getAreaIndex(coord.first, coord.second);
-			int newExciteID = areaExciteID[newAreaID];
+			int newExciteID = exChannelExciteID[newAreaID];
 
 			// new volume [no interpolation]
 			areaLastPressure[newAreaID] = areaLastPressure[i];
@@ -2989,8 +3010,6 @@ int initControlThreads() {
 	while(window == NULL); // try again...patiently
 
 	for(int i=0; i<AREA_NUM; i++) {
-		areaModulatedVol[i] = 1;
-
 		deltaLowPassFreq[areaIndex] = areaExLowPassFreq[i]/100.0;
 		if(i>0)
 			areaExFreq[i] = areaExFreq[0];
@@ -3001,13 +3020,22 @@ int initControlThreads() {
 
 		areaDeltaDamp[i] = areaDamp[i]*0.1;
 		areaDeltaProp[i] = areaProp[i]*0.01;
-
-		areaExciteID[i] = drumExId;
 	}
 
 	// get names of area excitations [use case of area 0...they're all the same]
 	excitationNames = new string[hyperDrumSynth->getAreaExcitationsNum(0)];
 	hyperDrumSynth->getAreaExcitationsNames(0, excitationNames);
+
+	exChannels = hyperDrumSynth->getExcitationsChannels();
+
+	exChannelExciteID = new int[exChannels];
+	triggerChannel_touches = new list<int>[exChannels];
+	triggerChannel_touch_coords = new list<pair<int, int>>*[exChannels];
+	exChannelModulatedVol = new double[exChannels];
+	for(int i=0; i<exChannels; i++) {
+		exChannelExciteID[i] = drumExId;
+		exChannelModulatedVol[i] = 1;
+	}
 
 	// boundary distances handling
 	//VIC dist dist_init();
@@ -3086,6 +3114,10 @@ int initControlThreads() {
 	pinchRef_pos[0] = new int[touchSlots];
 	pinchRef_pos[1] = new int[touchSlots];
 
+	triggerTouch_channel = new int*[touchSlots];
+	for(int i=0; i<exChannels; i++)
+		triggerChannel_touch_coords[i] = new list<pair<int, int>>[touchSlots];
+
 	for(int i=0; i<touchSlots; i++) {
 		touchOn[i] = false;
 		touchOnBoundary[0][i] = false;
@@ -3107,6 +3139,11 @@ int initControlThreads() {
 		is_preFingerPress_dynamic[i] = false;
 		is_preFingerPinch_dynamic[i] = false;
 		is_preFingerPinchRef_dynamic[i] = false;
+
+		triggerTouch_channel[i] = new int[exChannels];
+		for(int j=0; j<exChannels; j++)
+			triggerTouch_channel[i][j] = -1;
+
 		//VIC all this shit to fix fucking bugs and faulty behaviors of displax
 		extraTouchDone[i] = false;
 		touchIsInhibited[i] = false;
@@ -3339,6 +3376,28 @@ void cleanUpControlLoop() {
 
 
 	// deallocate, ue'!
+	if(excitationNames != nullptr)
+		delete[] excitationNames;
+	if(exChannelExciteID != nullptr)
+		delete[] exChannelExciteID;
+	if(triggerChannel_touches != nullptr)
+		delete[] triggerChannel_touches;
+	if(triggerChannel_touch_coords != nullptr) {
+		for(int i=0; i<exChannels; i++) {
+			if(triggerChannel_touch_coords[i] != nullptr)
+				delete[] triggerChannel_touch_coords[i];
+		}
+		delete[] triggerChannel_touch_coords;
+	}
+	if(triggerTouch_channel != nullptr) {
+		for(int i=0; i<touchSlots; i++) {
+			if(triggerTouch_channel[i] != nullptr)
+				delete[] triggerTouch_channel[i];
+		}
+	}
+	if(exChannelModulatedVol != nullptr)
+		delete[] exChannelModulatedVol;
+
 	delete[] touchOn;
 	delete[] touchPos[0];
 	delete[] touchPos[1];

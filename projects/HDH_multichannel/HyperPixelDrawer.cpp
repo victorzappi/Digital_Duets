@@ -276,7 +276,7 @@ GLfloat HyperPixelDrawer::getCellArea(int x, int y) {
 	return framePixels[y*writeChannels*gl_width+x*writeChannels];
 }
 
-int HyperPixelDrawer::setCellType(int x, int y, GLfloat type) {
+int HyperPixelDrawer::setCellType(int x, int y, GLfloat type, GLfloat channel) {
 	//printf("(%d, %d)", x, y);
 	if (x < 0 || x >= gl_width || y < 0 || y >= gl_height)
 		return -1;
@@ -288,6 +288,10 @@ int HyperPixelDrawer::setCellType(int x, int y, GLfloat type) {
 		return 1;
 
 	framePixels[index] = type;
+
+	// we pass channel for excitation cells 
+	if(channel != -1)
+		framePixels[index+1] = channel;
 
 	//printf(" = %f\n", type);
 
@@ -312,19 +316,18 @@ int HyperPixelDrawer::setCellArea(int x, int y, GLfloat area) {
 	return 0;
 }
 
-int HyperPixelDrawer::setCell(int x, int y, GLfloat area, GLfloat type, GLfloat bgain) {
+int HyperPixelDrawer::setCell(int x, int y, GLfloat area, GLfloat type, GLfloat bgain_or_channel) {
 	//printf("(%d, %d)", x, y);
 	if (x < 0 || x >= gl_width || y < 0 || y >= gl_height)
 		return -1;
 
 	int index = y*writeChannels*gl_width+x*writeChannels;
-
-	framePixels[index]   = area;
+	if(area!=-1)
+		framePixels[index] = area; // when drawing excitation cells, we don't change area
+	if(bgain_or_channel!=-1)
+		framePixels[index+1] = bgain_or_channel; 	// in case we also want to change boundary gain [boundary cells] or channel [excitation cells]
 	framePixels[index+2] = type;
-	if(bgain==-1)
-		return 0;
-	// in case we also want to change boundary gain...possibly on boundary cells, but whatever
-	framePixels[index+1] = bgain;
+
 	return 0;
 
 }

@@ -178,7 +178,7 @@ void parseMessage(oscpkt::Message msg) {
 		dampAreaExcitation(area);
 		//printf("damp area %d\n", area);
 	}*/ else if( msg.match("/hdh/excitationID").popInt32(area).popInt32(id).isOkNoMoreArgs() ) {
-		setAreaExcitationID(area, id);
+		setChannelExcitationID(area, id);
 		//printf("OSC excitation ID %d\n", id);
 	}
 }

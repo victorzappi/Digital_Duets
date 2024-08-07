@@ -17,10 +17,9 @@ using namespace std;
 
 class HyperDrumExcitation : public AudioGeneratorInOut {
 
-#define MAX_NUM_OF_INPUTS 4
-
 public:
-	HyperDrumExcitation(string folder, float maxLevel, unsigned int audio_rate, unsigned int periodSize, unsigned int simulationRate);
+	HyperDrumExcitation(string folder, float maxLevel, unsigned int audio_rate, unsigned int periodSize, unsigned int simulationRate, 
+						unsigned short inChannels, unsigned short inChnOffset);
 	~HyperDrumExcitation();
 	int getComponentsNum();
 	void getComponentsNames(string *names);
@@ -68,7 +67,7 @@ private:
 
 	AudioFile *audiofiles;
 
-	Passthrough passthrough[MAX_NUM_OF_INPUTS];
+	Passthrough *passthrough;
 
 	ADSR adsr;
 

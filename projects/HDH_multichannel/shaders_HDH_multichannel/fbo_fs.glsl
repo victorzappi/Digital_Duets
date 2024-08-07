@@ -16,8 +16,11 @@ const int numOfStates   = 2;
 const int maxNumOfAreas = 10;
 uniform int numOfAreas;
 
-const int maxNumOfChannels = 16;
-uniform int numOfChannels;
+const int maxNumOfInChannels = 32;
+
+
+const int maxNumOfOutChannels = 16;
+uniform int numOfOutChannels;
 uniform float audioWriteChannelOffset;
 
 
@@ -50,13 +53,13 @@ uniform int quad;
 uniform float areaMu[maxNumOfAreas];  		 // damping factor, the higher the quicker the damping
 uniform float areaRho[maxNumOfAreas]; 		 // propagation factor, that combines spatial scale and speed in the medium. must be <= 0.5
 uniform float excitationInput; // excites all areas
-uniform float areaExciteInput[maxNumOfAreas]; // excite only specific area
+uniform float areaExciteInput[maxNumOfInChannels]; // excite only specific area
 
 // listeners
 uniform vec2 listenerFragCoord[numOfStates];
-uniform vec2 areaListenerFragCoord[maxNumOfAreas][maxNumOfChannels][numOfStates];
+uniform vec2 areaListenerFragCoord[maxNumOfAreas][maxNumOfOutChannels][numOfStates];
 
-uniform vec2 areaListenerBFragCoord[maxNumOfAreas][maxNumOfChannels][numOfStates];
+uniform vec2 areaListenerBFragCoord[maxNumOfAreas][maxNumOfOutChannels][numOfStates];
 
 uniform float crossfade;  
 
@@ -73,7 +76,7 @@ uniform vec3 audioWriteCoords;   // (audioWritePixelcoordX, audioWritePixelcoord
 // writeChannel[2] = RBGAindex, this determines what pixel's channel to write to
 //----------------------------------------------------------------------------------------------------------
 
-uniform float exciteCrossfade[maxNumOfAreas];
+uniform float exciteCrossfade[maxNumOfInChannels];
 
 
 // shader color dbg: helps check that the type of cell is recognized
@@ -141,8 +144,9 @@ vec4 computeFDTD() {
 	int is_excitation = int(frag_c.w==cell_excitation);
 	int is_excitationA = int(frag_c.w==cell_excitationA);
 	int is_excitationB = int(frag_c.w==cell_excitationB); 
+	int channel = int(frag_c.z);
 	// type excitation is alwahys triggered and takes into account main excitation command  +  crossfade between excitationA and excitationB 
-	p_next += (excitationInput+areaExciteInput[area])*is_excitation + areaExciteInput[area]*is_excitationA*(1-exciteCrossfade[area]) + exciteCrossfade[area]*areaExciteInput[area]*is_excitationB;
+	p_next += (excitationInput+areaExciteInput[channel])*is_excitation + areaExciteInput[channel]*is_excitationA*(1-exciteCrossfade[channel]) + exciteCrossfade[channel]*areaExciteInput[channel]*is_excitationB;
 	//p_next += (excitationInput+areaExciteInput[area]) * (is_excitation + is_excitationA + is_excitationB);
 	
 		
@@ -171,7 +175,7 @@ vec4 saveAudio() {
 	vec4 retColor = texture(inOutTexture, texture0);
 	
 	// then cycle the audio regions of all channels, which are stacked vertically
-	for(int k=0; k<numOfChannels; k++) {
+	for(int k=0; k<numOfOutChannels; k++) {
 		
 		// and see if this fragment is the one suppposed to save the new audio sample in this channel...	
 		float diffx = texture0.x-writeXCoord;

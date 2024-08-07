@@ -295,12 +295,13 @@ int initDrumSynth(float ***domainPixels) {
 	hyperDrumSynth->monitorSettings(fullscreen, monitorIndex);
 
 	// init
-	unsigned short inChannels = 2; 
-	unsigned short inChnOffset = 0; 
-	unsigned short outChannels = 2;
-	unsigned short outChnOffset= 0; //@VIC 2;
+	unsigned short exInChannels = 2; 
+	unsigned short exInChnOffset = 0;
+	unsigned short hdhInChannels = 2; // same as nume of excitations, one per each hdh input channel
+	unsigned short hdhdOutChannels = 2;
+	unsigned short hdhOutChnOffset= 0; //@VIC 2;
 	hyperDrumSynth->init(shaderLocation, domainSize, rate, rate_mul, period_size, excitationLevel, magnifier, exciteFileFolder, listenerCoord, 
-						 inChannels, inChnOffset, outChannels, outChnOffset);
+						 exInChannels, exInChnOffset, hdhInChannels, hdhdOutChannels, hdhOutChnOffset);
 	if(hyperDrumSynth->setDomain(excitationCoord, excitationDim, domainPixels, builtinPreset) != 0)
 	 return 1;
 
@@ -316,7 +317,7 @@ int initDrumSynth(float ***domainPixels) {
 		areaProp[i] = areaProp[0];
 		areaExLowPassFreq[i]    = areaExLowPassFreq[0];
 		areaExRelease[i]        = areaExRelease[0];
-		for(int k=0; k<outChannels; k++)
+		for(int k=0; k<hdhdOutChannels; k++)
 			hyperDrumSynth->hideAreaListener(i, k);
 		hyperDrumSynth->setAreaExcitationVolume(i, areaExcitationVol[i]);
 		hyperDrumSynth->setAreaDampingFactor(i, areaDamp[i]);

@@ -29,7 +29,7 @@ public:
 	HyperDrumhead();
 	~HyperDrumhead();
 	int init(string shaderLocation, int *domainSize, int audioRate, int rateMul, unsigned int periodSize, float mag=1, int *listCoord=NULL,
-			 unsigned short inChannels=1, unsigned short inChnOffset=0, unsigned short outChannels=1, unsigned short outChnOffset=0);
+			 unsigned short inChannels=1, unsigned short outChannels=1, unsigned short outChnOffset=0);
 	double **getFrameBuffer(int numOfSamples, double **areaInput);
 	GLFWwindow *getWindow(int *size); //VIC drawer
 	void setAreaDampingFactor(int index, float dampFact);
@@ -47,7 +47,7 @@ public:
 	int clearDomain(); //VIC drawer
 	int saveFrame(hyperDrumheadFrame *frame, string filename=""); //VIC drawer
 	int openFrame(string filename, hyperDrumheadFrame *&frame, bool reload=false); //VIC drawer
-	int setCellType(int x, int y, float type);
+	int setCellType(int x, int y, float type, int channel=-1);
 	float getCellType(int x, int y);
 	int setCellArea(int x, int y, float area);
 	int setCell(int x, int y, float area, float type, float bgain=-1);

@@ -17,41 +17,43 @@ HyperDrumSynth::HyperDrumSynth() {
 
 	numOfAreas = HyperDrumhead::areaNum;
 
-	areaExcitation = new HyperDrumExcitation* [numOfAreas];
-	for(int i=0; i<numOfAreas; i++)
-		areaExcitation[i] = NULL;
-
-	areaExciteBuff = new double* [numOfAreas];
 }
 
 HyperDrumSynth::~HyperDrumSynth() {
-	for(int i=0; i<numOfAreas; i++) {
-		if(areaExcitation[i] != NULL)
-			delete areaExcitation[i];
+	for(int i=0; i<in_channels; i++) {
+		if(channelExcitation[i] != NULL)
+			delete channelExcitation[i];
 	}
-	delete[] areaExcitation;
-	delete[] areaExciteBuff;
+	delete[] channelExcitation;
+	delete[] channelExciteBuff;
 
 }
 
 void HyperDrumSynth::init(string shaderLocation, int *domainSize, int audioRate, int rateMul,
 		  	  	  	      int periodSize, float exLevel, float magnifier, string exciteFolder, int *listCoord, 
-						  unsigned short inChannels, unsigned short inChnOffset, unsigned short outChannels, unsigned short outChnOffset) {
-	AudioGeneratorInOut::init(periodSize, inChannels, inChnOffset, outChannels, outChnOffset);
+						  unsigned short exInChannels, unsigned short exInChnOffset,  unsigned short hdhInChannels, unsigned short hdhOutChannels, unsigned short hdhOutChnOffset) {
+	AudioGeneratorInOut::init(periodSize, hdhInChannels, 0, hdhOutChannels, hdhOutChnOffset);
 	rate            = audioRate;
 	rateMultiplier  = (rateMul>0) ? rateMul : 1; // juuust in case
 
 	this->domainSize[0] = domainSize[0];
 	this->domainSize[1] = domainSize[1];
 
-	simulationRate  = hyperDrumhead.init(shaderLocation, domainSize, audioRate, rateMul, period_size, magnifier, listCoord, inChannels, inChnOffset, outChannels, outChnOffset);
+	simulationRate  = hyperDrumhead.init(shaderLocation, domainSize, audioRate, rateMul, period_size, magnifier, listCoord, hdhInChannels, hdhOutChannels, hdhOutChnOffset);
 
-	initExcitation(rateMul, exLevel, exciteFolder);
+
+	initExcitation(rateMul, exLevel, exciteFolder, exInChannels, exInChnOffset);
 }
 
-void HyperDrumSynth::initExcitation(int rate_mul, float excitationLevel, string exciteFolder) {
-	for(int i=0; i<numOfAreas; i++)
-		areaExcitation[i] = new HyperDrumExcitation(exciteFolder, excitationLevel, rate, period_size*rate_mul, simulationRate); // periodSize*rate_mul cos we have to provide enough samples per each simulation step
+void HyperDrumSynth::initExcitation(int rate_mul, float excitationLevel, string exciteFolder, unsigned short inChannels, unsigned short inChnOffset) {
+	channelExcitation = new HyperDrumExcitation* [in_channels]; // each input channel of the hdh is coupled with an excitation!
+	for(int i=0; i<in_channels; i++)
+		channelExcitation[i] = NULL;
+
+	channelExciteBuff = new double* [in_channels];
+
+	for(int i=0; i<in_channels; i++)
+		channelExcitation[i] = new HyperDrumExcitation(exciteFolder, excitationLevel, rate, period_size*rate_mul, simulationRate, inChannels, inChnOffset); // periodSize*rate_mul cos we have to provide enough samples per each simulation step
 }
 
 int HyperDrumSynth::setDomain(int *excitationCoord, int *excitationDimensions, float ***domain, bool preset) {
@@ -145,9 +147,9 @@ double HyperDrumSynth::getSample() {
 }
 
 double **HyperDrumSynth::getFrameBuffer(int numOfSamples, double **input) {
-	for(int i=0; i<numOfAreas; i++)
-		areaExciteBuff[i] = areaExcitation[i]->getFrameBuffer(numOfSamples*rateMultiplier, input)[0];
+	for(int i=0; i<in_channels; i++)
+		channelExciteBuff[i] = channelExcitation[i]->getFrameBuffer(numOfSamples*rateMultiplier, input)[0]; // each excitation outputs channel 0, which is then placed in the correct channel of the input buffer
 
-	return hyperDrumhead.getFrameBuffer(numOfSamples, areaExciteBuff);
+	return hyperDrumhead.getFrameBuffer(numOfSamples, channelExciteBuff);
 }
 

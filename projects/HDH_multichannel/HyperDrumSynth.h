@@ -27,7 +27,7 @@ public:
 	~HyperDrumSynth();
 	void init(string shaderLocation, int *domainSize, int audioRate, int rateMul,
 			  int periodSize, float exLevel, float magnifier, string exciteFolder=".", int *listCoord=NULL, 
-			  unsigned short inChannels=1, unsigned short inChnOffset=0, unsigned short outChannels=1, unsigned short outChnOffset=0);
+			  unsigned short exInChannels=1, unsigned short exInChnOffset=0,  unsigned short hdhInChannels=1, unsigned short hdhOutChannels=1, unsigned short hdhOutChnOffset=0);
 	int setDomain(int *excitationCoord, int *excitationDimensions, float ***domain, bool preset=false);
 
 	// overloads of pure virtual methods
@@ -65,7 +65,7 @@ public:
 	void triggerAreaExcitation(int index);
 	void dampAreaExcitation(int index);
 	GLFWwindow *getWindow(int *size);
-	int setCellType(int x, int y, float type);
+	int setCellType(int x, int y, float type, int channel=-1);
 	float getCellType(int x, int y);
 	void setFirstMovingExciteCoords(int index, int exX, int exY);
 	void setNextMovingExciteCoords(int index, int exX, int exY);
@@ -104,6 +104,7 @@ public:
 	void setSelectedArea(int area);
 	void setAreaExcitationRelease(int index, double t);
 	void setUpAreaListenerCanDrag(int index, int drag);
+	int getExcitationsChannels();
 
 	void retrigger();
 	void retriggerStreams();
@@ -116,15 +117,15 @@ private:
 	int domainSize[2];
 
 	//------------------------------
-	HyperDrumExcitation **areaExcitation;
+	HyperDrumExcitation **channelExcitation;
 	HyperDrumhead hyperDrumhead;
 	//------------------------------
 
-	double **areaExciteBuff;
+	double **channelExciteBuff;
 
 	int numOfAreas;	// for area excitation
 
-	void initExcitation(int rate_mul, float excitationLevel, string exciteFolder);
+	void initExcitation(int rate_mul, float excitationLevel, string exciteFolder, unsigned short inChannels, unsigned short inChnOffset);
 };
 
 
@@ -166,37 +167,37 @@ inline int HyperDrumSynth::shiftAreaListenerV(int index, int delta) {
 	return hyperDrumhead.shiftAreaListenerV(index, 0, delta);
 }
 inline void HyperDrumSynth::setAreaExcitationVolume(int index, double v) {
-	areaExcitation[index]->setVolume(v);
+	channelExcitation[index]->setVolume(v);
 }
 inline void HyperDrumSynth::setAreaExcitationVolumeFixed(int index, double v) {
-	areaExcitation[index]->setVolumeFixed(v);
+	channelExcitation[index]->setVolumeFixed(v);
 }
 inline void HyperDrumSynth::setAreaExcitationID(int index, int id) {
-	areaExcitation[index]->setExcitationID(id);
+	channelExcitation[index]->setExcitationID(id);
 }
 inline bool HyperDrumSynth::getAreaExcitationIsPercussive(int index) {
-	return areaExcitation[index]->getIsPercussive();
+	return channelExcitation[index]->getIsPercussive();
 }
 inline bool HyperDrumSynth::getAreaExcitationIsPercussive(int index, int id) {
-	return areaExcitation[index]->getIsPercussive(id);
+	return channelExcitation[index]->getIsPercussive(id);
 }
 inline int HyperDrumSynth::getAreaExcitationId(int index) {
-	return areaExcitation[index]->getExcitationId();
+	return channelExcitation[index]->getExcitationId();
 }
 inline void HyperDrumSynth::setAreaExLowPassFreq(int index, float freq) {
-	areaExcitation[index]->setLowpassFreq(freq);
+	channelExcitation[index]->setLowpassFreq(freq);
 }
 inline void HyperDrumSynth::triggerAreaExcitation(int index) {
-	areaExcitation[index]->excite();
+	channelExcitation[index]->excite();
 }
 inline void HyperDrumSynth::dampAreaExcitation(int index) {
-	areaExcitation[index]->damp();
+	channelExcitation[index]->damp();
 }
 inline GLFWwindow *HyperDrumSynth::getWindow(int *size) {
 	return hyperDrumhead.getWindow(size);
 }
-inline int HyperDrumSynth::setCellType(int x, int y, float type) {
-	return hyperDrumhead.setCellType(x, y, type);
+inline int HyperDrumSynth::setCellType(int x, int y, float type, int channel) {
+	return hyperDrumhead.setCellType(x, y, type, channel);
 }
 inline float HyperDrumSynth::getCellType(int x, int y) {
 	return hyperDrumhead.getCellType(x, y);
@@ -236,10 +237,10 @@ inline void HyperDrumSynth::setMousePos(int x, int y) {
 	hyperDrumhead.setMousePosition(x, y);
 }
 inline int HyperDrumSynth::getAreaExcitationsNum(int index) {
-	return areaExcitation[index]->getComponentsNum();
+	return channelExcitation[index]->getComponentsNum();
 }
 inline void HyperDrumSynth::getAreaExcitationsNames(int index, string *names) {
-	areaExcitation[index]->getComponentsNames(names);
+	channelExcitation[index]->getComponentsNames(names);
 }
 inline void HyperDrumSynth::setAreaEraserPosition(int index, int x, int y) {
 	hyperDrumhead.setAreaEraserPosition(index, x, y);
@@ -276,20 +277,22 @@ inline void HyperDrumSynth::setSelectedArea(int area) {
 	hyperDrumhead.setSelectedArea(area);
 }
 inline void HyperDrumSynth::setAreaExcitationRelease(int index, double t) {
-	areaExcitation[index]->setRelease(t);
+	channelExcitation[index]->setRelease(t);
 }
 inline void HyperDrumSynth::setUpAreaListenerCanDrag(int index, int drag) {
 	hyperDrumhead.setAreaListenerCanDrag(index, 0, drag);
 }
-
 inline void HyperDrumSynth::retrigger() {
 	for(int i=0; i<numOfAreas; i++)
-		areaExcitation[i]->retrigger();
+		channelExcitation[i]->retrigger();
 }
-
 inline void HyperDrumSynth::retriggerStreams() {
 	for(int i=0; i<numOfAreas; i++)
-		areaExcitation[i]->retriggerStreams();
+		channelExcitation[i]->retriggerStreams();
 }
+inline int HyperDrumSynth::getExcitationsChannels() {
+	return in_channels; // this is HDH input channels, a.k.a., number of exictations that go into HDH, which can be called excitation channels
+}
+
 
 #endif /* HyperDrumSynth_H_ */

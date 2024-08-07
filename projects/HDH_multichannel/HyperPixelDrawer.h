@@ -147,9 +147,9 @@ public:
 	int init(GLint active_unit, string shaderLocation, int drawArraysMain[][2], int drawArraysReset[][2]);
 	GLfloat getCellType(int x, int y);
 	GLfloat getCellArea(int x, int y);
-	int setCellType(int x, int y, GLfloat type);
+	int setCellType(int x, int y, GLfloat type, GLfloat channel=-1);
 	int setCellArea(int x, int y, GLfloat area);
-	int setCell(int x, int y, GLfloat area, GLfloat type, GLfloat bgain=-1);
+	int setCell(int x, int y, GLfloat area, GLfloat type, GLfloat bgain_or_channel=-1);
 	int resetCellType(int x, int y);
 	int getWidth();
 	int getHeight();

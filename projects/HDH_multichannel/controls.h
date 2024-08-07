@@ -23,7 +23,7 @@ void changePreFingersPinchDynamic(pinchFinger_mode mode);
 void endPreFingersPinchDynamic();
 void modulateAreaVolNorm(int area, double in);
 void setAreaExcitationVolume(int area, double v);
-void setAreaExcitationID(int area, int id);
+void setChannelExcitationID(int area, int id);
 void setAreaExReleaseNorm(int area, double in);
 void setAreaLowPassFilterFreqNorm(int area, double in);
 void setAreaDampNorm(int area, float in);
@@ -47,8 +47,9 @@ void reloadPreset();
 void changeMousePos(int mouseX, int mouseY);
 
 // only for keyboard
-void setAreaExcitationID(int id);
+void setChannelExcitationID(int id);
 void changeAreaIndex(int index);
+void changeExChannel(int channel);
 void cycleFirstPreFingerPressure();
 void cyclePreFingerPressureModeUnlock();
 void changePostFingerMode(motionFinger_mode mode, bool negated=false);

@@ -11,8 +11,9 @@
 #include <dirent.h>  // to handle files in dirs
 #include <algorithm> // sort
 
-HyperDrumExcitation::HyperDrumExcitation(string folder, float maxLevel, unsigned int audio_rate, unsigned int periodSize, unsigned int simulationRate) {
-	AudioGeneratorInOut::init(periodSize);
+HyperDrumExcitation::HyperDrumExcitation(string folder, float maxLevel, unsigned int audio_rate, unsigned int periodSize, unsigned int simulationRate, 
+										 unsigned short inChannels, unsigned short inChnOffset) {
+	AudioGeneratorInOut::init(periodSize, inChannels, inChnOffset, 1, 0); // all these excitors output a single channel, with no offset
 
 	rate 				= audio_rate;
 	simulation_rate 	= simulationRate;
@@ -33,13 +34,14 @@ HyperDrumExcitation::HyperDrumExcitation(string folder, float maxLevel, unsigned
 	listFilesInFolder(folder);
 
 	numOfWaveforms = 4;
-	numOfInputs    = 4;
+	numOfInputs    = in_channels;
 
 	numOfComponents =  numOfWaveforms + numOfFiles + numOfInputs; // impulse, sine, square, noise + files + 4 passthroughs for 4 input channels
 
-	audiofiles 		 = new AudioFile[numOfFiles];
+	audiofiles  = new AudioFile[numOfFiles];
+	passthrough	= new Passthrough[in_channels];
 	audioModulesOut   = new AudioModuleOut*[numOfComponents];
-	audioModulesInOut = new AudioModuleInOut*[MAX_NUM_OF_INPUTS];
+	audioModulesInOut = new AudioModuleInOut*[in_channels];
 	componentIsPercussive = new bool[numOfComponents];
 	componentIsFileStream = new bool[numOfComponents];
 
@@ -121,7 +123,7 @@ HyperDrumExcitation::HyperDrumExcitation(string folder, float maxLevel, unsigned
 
 	// passthroughs
 	for(int i=0; i<numOfInputs; i++)
-		passthrough[i].init(periodSize, 1, i, 0);
+		passthrough[i].init(periodSize, 1, i+in_chn_offset, 0); // each passthrough takes 1 input channel and outputs it as its only output channel
 
 
 
@@ -185,6 +187,8 @@ HyperDrumExcitation::~HyperDrumExcitation() {
 		delete[] audioModulesInOut;
 	if(audiofiles!=NULL)
 		delete[] audiofiles;
+	if(passthrough!=NULL)
+		delete[] passthrough;
 	if(componentIsPercussive!=NULL)
 		delete[] componentIsPercussive;
 	if(componentIsFileStream!=NULL)
@@ -214,7 +218,7 @@ double **HyperDrumExcitation::getFrameBuffer(int numOfSamples, double **input) {
 		}
 	}
 	else {
-		if(antiAliasing) // sinc impulse does not want aliasing, it would ruin its perfection!
+		if(antiAliasing) // sinc impulse does not want anti-aliasing, it would ruin its perfection!
 			aliasingFilter.process(tmpBuf, numOfSamples);
 
 		// attack adsr

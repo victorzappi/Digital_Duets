@@ -13,14 +13,17 @@ float maxVol = 20;
 const int maxNumOfAreas = 10;
 uniform int numOfAreas;
 
-const int maxNumOfChannels = 16;
-uniform int numOfChannels;
+const int maxNumOfOutChannels = 16;
+uniform int numOfOutChannels;
+
+const int maxNumOfInChannels = 32;
+
 
 uniform sampler2D inputTexture;
 
 uniform vec2 listenerFragCoord;
 
-uniform vec2 areaListenerFragCoord[maxNumOfAreas][maxNumOfChannels];
+uniform vec2 areaListenerFragCoord[maxNumOfAreas][maxNumOfOutChannels];
 
 const int cell_boundary    = 0;
 const int cell_air         = 1;
@@ -36,9 +39,9 @@ uniform vec2 mouseFragCoord;
 uniform int showAreas;
 uniform int selectedArea;
 
-uniform float exciteCrossfade[maxNumOfAreas];
+uniform float exciteCrossfade[maxNumOfInChannels];
 
-uniform int areaListenerCanDrag[maxNumOfAreas][maxNumOfChannels];
+uniform int areaListenerCanDrag[maxNumOfAreas][maxNumOfOutChannels];
 
 uniform vec2 areaEraserFragCoord[maxNumOfAreas];
 
@@ -145,9 +148,10 @@ void main() {
 		float p = frag_color.r;
 		vec4 color = get_color_from_pressure(p);
 		
-		int area = int(texture(inputTexture, coord).g);
+		//int area = int(texture(inputTexture, coord).g);
+		int channel = int(texture(inputTexture, coord).a);
 		
-		frag_color = mix(color, color_yellow, 0.4*(1-exciteCrossfade[area]));
+		frag_color = mix(color, color_yellow, 0.4*(1-exciteCrossfade[channel]));
 		
 		if(colDebug)
 			frag_color = color_yellow;
@@ -157,10 +161,10 @@ void main() {
 		float p = frag_color.r;
 		vec4 color = get_color_from_pressure(p);
 		
-		int area = int(texture(inputTexture, coord).g);
+		//int area = int(texture(inputTexture, coord).g);
+		int channel = int(texture(inputTexture, coord).a);
 		
-		
-		frag_color = mix(color, color_pink, 0.4*exciteCrossfade[area]);
+		frag_color = mix(color, color_pink, 0.4*exciteCrossfade[channel]);
 		
 		if(colDebug)
 			frag_color = color_pink;
@@ -225,7 +229,7 @@ void main() {
 	int area = int(texture(inputTexture, coord).g);
 	// area listeners
 	for(int i=0; i<numOfAreas; i++) {
-		for(int k=0; k<numOfChannels; k++) {
+		for(int k=0; k<numOfOutChannels; k++) {
 
 			posDiff = vec2(coord.x - areaListenerFragCoord[i][k].x, coord.y - areaListenerFragCoord[i][k].y);
 			absDiff = vec2(abs(posDiff.x), abs(posDiff.y));

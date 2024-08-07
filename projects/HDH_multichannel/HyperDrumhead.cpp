@@ -61,7 +61,6 @@ HyperDrumhead::HyperDrumhead() {
 	currentDeck    = 0; // 0 = deck A, 1 = deck B
 
 	// area excitations
-	areaExciteInput_loc = new GLint[numOfAreas];
 	updateExcitations = false; 	// for fast excitation creation
 
 	// area damping factors
@@ -84,42 +83,10 @@ HyperDrumhead::HyperDrumhead() {
 		areaRho_loc[i]   = -1;
 		updateAreaRho[i] = false;
 	}
-	// area excitation crossfade
+
+	// excitation crossfade
 	doExciteCrossfade     = false;
-	updateExciteCrossfade = new bool[numOfAreas];
-	updateExciteCrossfadeRender = new bool[numOfAreas];
-	exciteCrossfade_loc   = new GLint[numOfAreas];
-	exciteCrossfade_loc_render = new GLint[numOfAreas];
-	exciteCrossfade       = new float[numOfAreas];
 	exciteCrossfadeDelta  = 0;
-	exciteCurrentDeck     = new char[numOfAreas];
-	movingExciteCoords[0] = new pair<int, int>[numOfAreas];
-	movingExciteCoords[1] = new pair<int, int>[numOfAreas];
-	movingExcitation = new bool[numOfAreas];
-	resetMovingExcite = new bool[numOfAreas];
-	nextExciteCoordX = new atomic<int>[numOfAreas];
-	nextExciteCoordY = new atomic<int>[numOfAreas];
-	resetExciteCoordX = new atomic<int>[numOfAreas];
-	resetExciteCoordY = new atomic<int>[numOfAreas];
-	for(int i=0; i<numOfAreas; i++) {
-		updateExciteCrossfade[i] = false;
-		exciteCrossfade_loc[i]   = -1;
-		exciteCrossfade_loc_render[i] = -1;
-		exciteCrossfade[i]       = 0;
-		exciteCurrentDeck[i]     = 0;
-		movingExciteCoords[0][i].first  = -2;
-		movingExciteCoords[0][i].second = -2;
-		movingExciteCoords[1][i].first  = -2;
-		movingExciteCoords[1][i].second = -2;
-
-		nextExciteCoordX[i].store(-2);
-		nextExciteCoordY[i].store(-2);
-		resetExciteCoordX[i].store(-2);
-		resetExciteCoordY[i].store(-2);
-	}
-
-
-
 
 	// pixel drawer
 	hyperPixelDrawer = NULL;
@@ -224,15 +191,20 @@ HyperDrumhead::~HyperDrumhead() {
 	delete[] areaEraserCoord;
 	delete[] updateAreaEraser;
 
-
-	delete[] updateExciteCrossfade;
-	delete[] updateExciteCrossfadeRender;
-	delete[] exciteCrossfade_loc;
-	delete[] exciteCrossfade_loc_render;
-	delete[] exciteCrossfade;
-	delete[] exciteCurrentDeck;
-
-	delete[] areaExciteInput_loc;
+	if(updateExciteCrossfade != NULL)
+		delete[] updateExciteCrossfade;
+	if(updateExciteCrossfadeRender != NULL)
+		delete[] updateExciteCrossfadeRender;
+	if(exciteCrossfade_loc != NULL)
+		delete[] exciteCrossfade_loc;
+	if(exciteCrossfade_loc_render != NULL)
+		delete[] exciteCrossfade_loc_render;
+	if(exciteCrossfade != NULL)
+		delete[] exciteCrossfade;
+	if(exciteCurrentDeck != NULL)
+		delete[] exciteCurrentDeck;
+	if(areaExciteInput_loc != NULL)
+		delete[] areaExciteInput_loc;
 
 	if(hyperPixelDrawer != NULL)
 		delete hyperPixelDrawer;
@@ -240,11 +212,45 @@ HyperDrumhead::~HyperDrumhead() {
 }
 
 int HyperDrumhead::init(string shaderLocation, int *domainSize, int audioRate, int rateMul, unsigned int periodSize, float mag, int *listCoord,
-		       unsigned short inChannels, unsigned short inChnOffset, unsigned short outChannels, unsigned short outChnOffset) { 
+		       unsigned short inChannels, unsigned short outChannels, unsigned short outChnOffset) { 
 
 	int retval = FDTD::init(shaderLocation, domainSize, audioRate, rateMul, periodSize, mag, listCoord,
-		       inChannels, inChnOffset, outChannels,  outChnOffset);
+		       inChannels, 0, outChannels,  outChnOffset); // always 0 in channel offset
 	
+		// channel excitations
+		areaExciteInput_loc = new GLint[in_channels];
+		updateExciteCrossfade = new bool[in_channels];
+		updateExciteCrossfadeRender = new bool[in_channels];
+		exciteCrossfade_loc   = new GLint[in_channels];
+		exciteCrossfade_loc_render = new GLint[in_channels];
+		exciteCrossfade       = new float[in_channels];
+		exciteCurrentDeck     = new char[in_channels];
+		movingExciteCoords[0] = new pair<int, int>[in_channels];
+		movingExciteCoords[1] = new pair<int, int>[in_channels];
+		movingExcitation = new bool[in_channels];
+		resetMovingExcite = new bool[in_channels];
+		nextExciteCoordX = new atomic<int>[in_channels];
+		nextExciteCoordY = new atomic<int>[in_channels];
+		resetExciteCoordX = new atomic<int>[in_channels];
+		resetExciteCoordY = new atomic<int>[in_channels];
+
+		for(int i=0; i<in_channels; i++) {
+			updateExciteCrossfade[i] = false;
+			exciteCrossfade_loc[i]   = -1;
+			exciteCrossfade_loc_render[i] = -1;
+			exciteCrossfade[i]       = 0;
+			exciteCurrentDeck[i]     = 0;
+			movingExciteCoords[0][i].first  = -2;
+			movingExciteCoords[0][i].second = -2;
+			movingExciteCoords[1][i].first  = -2;
+			movingExciteCoords[1][i].second = -2;
+
+			nextExciteCoordX[i].store(-2);
+			nextExciteCoordY[i].store(-2);
+			resetExciteCoordX[i].store(-2);
+			resetExciteCoordY[i].store(-2);
+		}
+
 	// area listeners, second part [cos we know out_channels now] 
 	for(int i=0; i<numOfAreas; i++) {
 		areaListenerFragCoord_loc[i]        = new GLint* [out_channels];
@@ -295,7 +301,7 @@ int HyperDrumhead::init(string shaderLocation, int *domainSize, int audioRate, i
 }
 
 
-double **HyperDrumhead::getFrameBuffer(int numOfSamples, double **areaInput) {
+double **HyperDrumhead::getFrameBuffer(int numOfSamples, double **input) {
 
 	// move excitations to new coordinates
 	for(int i=0; i<numOfAreas; i++) {
@@ -310,7 +316,7 @@ double **HyperDrumhead::getFrameBuffer(int numOfSamples, double **areaInput) {
 	updateUniforms();
 
 	// calculate samples on GPU
-	computeSamples(numOfSamples, areaInput);
+	computeSamples(numOfSamples, input);
 
 	// render, reducing fps
 	if(blindBuffCnt++ >= blindBuffNum) {
@@ -442,7 +448,7 @@ int HyperDrumhead::clearDomain() {
 	return 0;
 }
 
-int HyperDrumhead::setCellType(int x, int y, float type) {
+int HyperDrumhead::setCellType(int x, int y, float type, int channel) {
 	if(!inited)
 		return -1;
 
@@ -453,7 +459,7 @@ int HyperDrumhead::setCellType(int x, int y, float type) {
 	x = coords[0];
 	y = coords[1];
 
-	if(hyperPixelDrawer->setCellType(x, y, (GLfloat)type) != 0)
+	if(hyperPixelDrawer->setCellType(x, y, (GLfloat)type, (GLfloat)channel) != 0) // channel is used for excitations only
 		return 1;
 
 	// for fast excitation creation
@@ -499,7 +505,7 @@ int HyperDrumhead::setCellArea(int x, int y, float area) {
 }
 
 
-int HyperDrumhead::setCell(int x, int y, float area, float type, float bgain) {
+int HyperDrumhead::setCell(int x, int y, float area, float type, float bgain_or_channel) {
 	if(!inited)
 		return -1;
 
@@ -510,7 +516,13 @@ int HyperDrumhead::setCell(int x, int y, float area, float type, float bgain) {
 	x = coords[0];
 	y = coords[1];
 
-	if(hyperPixelDrawer->setCell(x, y, (GLfloat)area, (GLfloat)type, (GLfloat)bgain) != 0)
+	// when setting excitations, begain contains channel and area remains unchanged
+	// if(type == cell_excitation || type ==  cell_excitationA || type ==  cell_excitationB) {
+	// 	bgain_or_channel = area;
+	// 	area = -1;
+	// }
+
+	if(hyperPixelDrawer->setCell(x, y, (GLfloat)area, (GLfloat)type, (GLfloat)bgain_or_channel) != 0)
 		return 1;
 
 	// for fast excitation creation
@@ -910,7 +922,7 @@ int HyperDrumhead::initAdditionalUniforms() {
 	}
 
 	string areaExciteInput_uniform_name = "";
-	for(int i=0; i<numOfAreas; i++) {
+	for(int i=0; i<in_channels; i++) {
 		areaExciteInput_uniform_name = "areaExciteInput["+to_string(i)+"]";
 		areaExciteInput_loc[i] = shaderFbo.getUniformLocation(areaExciteInput_uniform_name.c_str());
 		if(areaExciteInput_loc[i] == -1) {
@@ -945,9 +957,9 @@ int HyperDrumhead::initAdditionalUniforms() {
 		//return -1;
 	}
 
-	GLint numOfChannels_loc = shaderFbo.getUniformLocation("numOfChannels");
-	if(numOfChannels_loc == -1) {
-		printf("numOfChannels uniform can't be found in fbo shader program\n");
+	GLint numOfOutChannels_loc = shaderFbo.getUniformLocation("numOfOutChannels");
+	if(numOfOutChannels_loc == -1) {
+		printf("numOfOutChannels uniform can't be found in fbo shader program\n");
 		//return -1;
 	}
 
@@ -994,7 +1006,7 @@ int HyperDrumhead::initAdditionalUniforms() {
 
 	// location of excitation crossfade controls
 	string exciteCrossfade_uniform_name = "";
-	for(int i=0; i<numOfAreas; i++) {
+	for(int i=0; i<in_channels; i++) {
 		exciteCrossfade_uniform_name = "exciteCrossfade["+to_string(i)+"]";
 		exciteCrossfade_loc[i] = shaderFbo.getUniformLocation(exciteCrossfade_uniform_name.c_str());
 		if(exciteCrossfade_loc[i] == -1) {
@@ -1009,7 +1021,7 @@ int HyperDrumhead::initAdditionalUniforms() {
 
 	// set once
 	glUniform1i(numOfAreas_loc, numOfAreas);
-	glUniform1i(numOfChannels_loc, out_channels);
+	glUniform1i(numOfOutChannels_loc, out_channels);
 	glUniform1f(audioWriteChannelOffset_loc, deltaCoordY * audioRowH/out_channels);
 
 
@@ -1025,7 +1037,7 @@ int HyperDrumhead::initAdditionalUniforms() {
 	glUniform1f(crossfade_loc, crossfade);
 	checkError("glUniform1f crossfade");
 
-	for(int i=0; i<numOfAreas; i++) {
+	for(int i=0; i<in_channels; i++) {
 		glUniform1f(exciteCrossfade_loc[i], exciteCrossfade[i]);
 		checkError("glUniform1f exciteCrossfade");
 	}
@@ -1064,9 +1076,9 @@ int HyperDrumhead::initAdditionalUniforms() {
 	}
 
 
-	GLint numOfChannels_loc_render = shaderRender.getUniformLocation("numOfChannels");
-	if(numOfChannels_loc_render == -1) {
-		printf("numOfChannels uniform can't be found in render shader program\n");
+	GLint numOfOutChannels_loc_render = shaderRender.getUniformLocation("numOfOutChannels");
+	if(numOfOutChannels_loc_render == -1) {
+		printf("numOfOutChannels uniform can't be found in render shader program\n");
 		//return -1;
 	}
 
@@ -1094,7 +1106,7 @@ int HyperDrumhead::initAdditionalUniforms() {
 		//return -1;
 	}
 
-	for(int i=0; i<numOfAreas; i++) {
+	for(int i=0; i<in_channels; i++) {
 		exciteCrossfade_uniform_name = "exciteCrossfade["+to_string(i)+"]";
 		exciteCrossfade_loc_render[i] = shaderRender.getUniformLocation(exciteCrossfade_uniform_name.c_str());
 		if(exciteCrossfade_loc_render[i] == -1) {
@@ -1147,7 +1159,7 @@ int HyperDrumhead::initAdditionalUniforms() {
 	setUpSelectedArea();
 
 	glUniform1i(numOfAreas_loc_render, numOfAreas);
-	glUniform1i(numOfChannels_loc_render, out_channels);
+	glUniform1i(numOfOutChannels_loc_render, out_channels);
 
 
 	for(int i=0; i<numOfAreas; i++) {
@@ -1274,6 +1286,7 @@ void HyperDrumhead::computeNextAreaListenerFrag(int index, int chn) {
 	// quad 1      reads audio       from quad 0
 	nextAreaListenerFragCoord[index][chn][1][0] = (float)(areaListenerCoord[index][chn][0]+0.5) / (float)textureWidth;
 	nextAreaListenerFragCoord[index][chn][1][1] = (float)(areaListenerCoord[index][chn][1]+0.5) / (float)textureHeight;
+
 	// quad 0      reads audio       from quad 1
 	nextAreaListenerFragCoord[index][chn][0][0] = (float)(areaListenerCoord[index][chn][0]+0.5+gl_width) / (float)textureWidth;
 	nextAreaListenerFragCoord[index][chn][0][1] = (float)(areaListenerCoord[index][chn][1]+0.5) / (float)textureHeight;
@@ -1281,7 +1294,7 @@ void HyperDrumhead::computeNextAreaListenerFrag(int index, int chn) {
 }
 
 
-void HyperDrumhead::computeSamples(int numOfSamples, double **areaInput) {
+void HyperDrumhead::computeSamples(int numOfSamples, double **input) {
 	const int bits = GL_TEXTURE_FETCH_BARRIER_BIT;
 
 	// Iterate over each sample
@@ -1299,7 +1312,7 @@ void HyperDrumhead::computeSamples(int numOfSamples, double **areaInput) {
 		}
 
 		if(doExciteCrossfade) {
-			for(int i=0; i<numOfAreas; i++) {
+			for(int i=0; i<in_channels; i++) {
 				if(updateExciteCrossfade[i]) {
 					if(exciteCurrentDeck[i]==0)
 						exciteCrossfade[i]+=exciteCrossfadeDelta;
@@ -1343,8 +1356,8 @@ void HyperDrumhead::computeSamples(int numOfSamples, double **areaInput) {
 
 			state = (state+1)%numOfStates; // offset value for next round
 			// send area excitation input
-			for(int j=0;j<numOfAreas; j++)
-				glUniform1f(areaExciteInput_loc[j], areaInput[j][n*rate_mul+i]);
+			for(int j=0;j<in_channels; j++)
+				glUniform1f(areaExciteInput_loc[j], input[j][n*rate_mul+i]);
 			// send other critical uniforms that need to be updated at every sample
 			updateUniformsCritical();
 
@@ -1462,7 +1475,7 @@ void HyperDrumhead::getSamples(int numSamples) {
 		}
 
 		if(doExciteCrossfade) {
-			for(int i=0; i<numOfAreas; i++) {
+			for(int i=0; i<in_channels; i++) {
 				if(updateExciteCrossfade[i]) {
 					if(exciteCurrentDeck[i]==0) {
 						exciteCurrentDeck[i] = 1;
@@ -1540,7 +1553,7 @@ void HyperDrumhead::getSamplesReadTime(int numSamples, int &readTime) {
 		}
 
 		if(doExciteCrossfade) {
-			for(int i=0; i<numOfAreas; i++) {
+			for(int i=0; i<in_channels; i++) {
 				if(updateExciteCrossfade[i]) {
 					if(exciteCurrentDeck[i]==0) {
 						exciteCurrentDeck[i] = 1;
@@ -1760,7 +1773,7 @@ void HyperDrumhead::setFirstMovingExciteCoords(int index, int exX, int exY) {
 	// we select the current deck and do not crossfade
 	cell_type type = (deck==0) ? cell_excitationA : cell_excitationB;
 
-	if(setCell(exX, exY, index, type))
+	if(setCell(exX, exY, -1, type, index))
 		return;
 
 	//printf("\tcurrent set %d %d\n", exX, exY);
@@ -1846,7 +1859,7 @@ void HyperDrumhead::moveExcitation(int index) {
 	//printf("----current deck: %d, will go to %d, so PUT excitation %s\n", deck, 1-deck, (deck==0) ? "B" : "A");
 	cell_type type = (deck==0) ? cell_excitationB : cell_excitationA; // if 0 goes to B, if 1 goes to A
 	// add new excitatiton [destination]
-	if(hyperPixelDrawer->setCell(coords[0], coords[1], (GLfloat)index, (GLfloat)type) != 0)
+	if(hyperPixelDrawer->setCell(coords[0], coords[1], (GLfloat)-1, (GLfloat)type, (GLfloat)index) != 0)
 		return;
 
 	// update pixelDrawer and trigger area excitation crossfade
