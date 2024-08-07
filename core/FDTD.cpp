@@ -645,6 +645,7 @@ void FDTD::initImage(int domainWidth, int domainHeigth) {
 
 // here we prepare the vao to get the vertices' data we defined in fillVertices()
 void FDTD::initVao(GLuint vbo, GLuint shader_program_fbo, GLuint shader_program_render, GLuint &vao) {
+	(void)shader_program_render; // not used, so we mute warning 
 	glGenVertexArrays (1, &vao);
 
 	glBindVertexArray(vao);

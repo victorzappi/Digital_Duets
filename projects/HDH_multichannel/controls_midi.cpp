@@ -64,37 +64,37 @@ void midiMessageCallback(MidiChannelMessage message, void* arg){
 				vel = message.getDataByte(1);
 
 				if(note==0) {
-					if(vel == 100){
+					if(vel == 100) {
 						changePreFingersPinchDynamic(pinch_prop);//changePreFingersPressureDynamic(press_prop);
-					}else{
+					} else {
 						//endPreFingersPressureDynamic();
 					}
 				}
 				else if(note==1) {
-					if(vel == 100){
+					if(vel == 100) {
 						changePreFingersPinchDynamic(pinch_dmp);//changePreFingersPressureDynamic(press_dmp);
-					}else{
+					} else {
 						//endPreFingersPressureDynamic();
 					}
 				}
 				else if(note==5) {
-					if(vel == 100){
+					if(vel == 100) {
 						changePreFingersMotionDynamic(motion_bound);
-					}else{
+					} else {
 						endPreFingersMotionDynamic();
 					}
 				}
 				else if(note==6) {
-					if(vel == 100){
+					if(vel == 100) {
 						changePreFingersMotionDynamic(motion_bound, true);
-					}else{
+					}else {
 						endPreFingersMotionDynamic();
 					}
 				}
 				else if(note==7) {
-					if(vel == 100){
+					if(vel == 100) {
 						changePreFingersMotionDynamic(motion_list);
-					}else{
+					} else {
 						endPreFingersMotionDynamic();
 					}
 				}
@@ -209,7 +209,7 @@ void initMidiControls(int touchslotoffset) {
 	}*/
 
 	//touchSlotOffset = touchslotoffset; //VIC currently not used/declared
-
+	(void)touchslotoffset; // since not used, we mute warning
 }
 
 void startMidiControls() {

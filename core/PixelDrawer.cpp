@@ -515,6 +515,7 @@ PDrawerExplicitFDTD::PDrawerExplicitFDTD(int w, int h, Shader &shader_fbo, float
 }
 
 void PDrawerExplicitFDTD::update(int state, bool excitationChange) {
+	(void)excitationChange; // not used, so we mute warning
 	currentPbo->trigger();
 
 	shaderDraw.use();

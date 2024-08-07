@@ -522,6 +522,7 @@ void * updateAreaExciteDist(void *arg) {
 
 // routine for all areas
 void * updateExciteDist(void *arg) {
+	(void)arg; // not used, we mute warning
 	float minDist;
 	float dist;
 	int area;

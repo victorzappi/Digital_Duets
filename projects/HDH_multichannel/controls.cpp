@@ -2196,7 +2196,7 @@ void handleNewTouch(int currentSlot, int touchedArea, int coord[2]) {
 
 	// assign pre finger modifier, if it's the case; newTouch helps distinguishing real new touches from same touch that travels across areas, as well as from fake touches originating from DISPLAX bug
 	if( newTouch[currentSlot] && assignPreFinger(currentSlot, touchedArea, coord) ) {
-		//printf("touch %d is new pre finger for area %d\n", currentSlot, preFingersTouch_area[currentSlot]);
+		printf("touch %d is new pre finger for area %d\n", currentSlot, preFingersTouch_area[currentSlot]);
 	}
 
 	// regular excitation
@@ -2552,21 +2552,27 @@ void handleTouchRelease(int currentSlot) {
 
 
 		if(firstPreFingerArea_touch[area] == currentSlot) {
+			// if it was listener, release it
+			if(preFingersTouch_motion[currentSlot]==motion_list)
+				boundAreaListener_touch[boundTouch_areaListener[currentSlot]] = -1;
+
 			firstPreFingerArea_touch[area] = -1;
 			boundTouch_areaListener[currentSlot] = -1;
-			boundTouch_areaDamp[currentSlot] = -1;
-			boundTouch_areaProp[currentSlot] = -1;
 
-			// for sure remove bond with motion
+			// remove any bond with motion
 			preFingersTouch_motion[currentSlot] = motion_none;
 			preFingersTouch_motionNegated[currentSlot] = false;
 
 			// check if it was linked to any pressure modifier
 			if(firstPreFingerPress[area]==press_prop) {
+				boundAreaProp_touch[boundTouch_areaProp[currentSlot]] = -1;
 				setAreaProp(area, areaProp[area]); // in case, reset it
+				boundTouch_areaProp[currentSlot] = -1;
 			}
 			else if(firstPreFingerPress[area]==press_dmp)
+				boundAreaDamp_touch[boundTouch_areaDamp[currentSlot]] = -1;
 				setAreaDamp(area, areaDamp[area]); // in case, reset it
+				boundTouch_areaDamp[currentSlot] = -1;
 		}
 
 		// wipe
@@ -2794,7 +2800,6 @@ void updateTouchRecordsMouse(float xpos, float ypos, bool isNew=false) {
 void mouseLeftPress(float xpos, float ypos) {
 	int mouseTouch = touchSlots-1;
 
-	// update touch records
 	updateTouchRecordsMouse(xpos, ypos, true);
 
 	// turn to domain coords (:

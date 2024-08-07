@@ -182,22 +182,28 @@ void key_callback(GLFWwindow *, int key, int scancode, int action, int mods) {
 				case GLFW_KEY_A:
 					if(!altIsPressed)
 						changeFirstPreFingerMotion(motion_bound, shiftIsPressed);
-					else
+					else {
 						changePreFingersMotionDynamic(motion_bound, shiftIsPressed);
+						endPreFingersMotionDynamic(); // otherwise all successive touches will be pre fingers
+					}
 					break;
 				case GLFW_KEY_S:
 					if(leftCtrlIsPressed || rightCtrlIsPressed)
 						savePreset();
 					else if(!altIsPressed)
 						changeFirstPreFingerMotion(motion_ex, shiftIsPressed);
-					else
+					else {
 						changePreFingersMotionDynamic(motion_ex, shiftIsPressed);
+						endPreFingersMotionDynamic(); // otherwise all successive touches will be pre fingers
+					}
 					break;
 				case GLFW_KEY_D:
 					if(!altIsPressed)
 						changeFirstPreFingerMotion(motion_list);
-					else
+					else {
 						changePreFingersMotionDynamic(motion_list);
+						endPreFingersMotionDynamic(); // otherwise all successive touches will be pre fingers
+					}
 					break;
 				case GLFW_KEY_F:
 					if(!altIsPressed)

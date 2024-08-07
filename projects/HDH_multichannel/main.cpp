@@ -295,7 +295,7 @@ int initDrumSynth(float ***domainPixels) {
 	hyperDrumSynth->monitorSettings(fullscreen, monitorIndex);
 
 	// init
-	unsigned short inChannels = 1; 
+	unsigned short inChannels = 2; 
 	unsigned short inChnOffset = 0; 
 	unsigned short outChannels = 2;
 	unsigned short outChnOffset= 0; //@VIC 2;
