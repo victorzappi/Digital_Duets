@@ -329,6 +329,10 @@ string *excitationNames = nullptr;
 extern bool drumSynthInited;
 //----------------------------------------
 
+
+TouchControlManager *touchControlManager = nullptr;
+
+
 void printTouches(list<pair<int, int>> touchCoords) {
 	int cnt = 0;
 	for(const auto& coords : touchCoords)
@@ -2205,6 +2209,35 @@ void reloadPreset() {
 
 
 
+void handleNewTouch2(int currentSlot, int coord[2]) {
+	touchControlManager->assignControl(currentSlot);
+
+	ControlAssignment assignment;
+	if( touchControlManager->getControl(currentSlot, assignment) ) {
+
+		if(assignment.controlType == type_motion) {
+
+			if(assignment.control == control_motion_excite) {
+
+				int touchedArea = getAreaIndex(coord[0], coord[1]);
+				if( !checkPercussive(touchedArea) ) {
+					//TODO adapt logic from 2368, but be careful, you have to take into account if channel excitation was dropped already
+				}
+				//else ...
+
+			}
+			else if(assignment.control == control_motion_listener) {
+
+			}
+			else if(assignment.control == control_motion_boundary) {
+			}
+		
+		}
+		//else if(assignment.controlType == type_pressure)
+	}
+
+}
+
 
 void handleNewTouch(int currentSlot, int touchedArea, int coord[2]) {
 	//printf("---------New touch %d\n", currentSlot);
@@ -3201,6 +3234,8 @@ int initControlThreads() {
 		pinchRef_areaDist[i] = -1;
 	}
 
+	touchControlManager = new TouchControlManager(touchSlots);
+
 
 	// general exponential curve values
 	expMax = 2;
@@ -3437,6 +3472,9 @@ void cleanUpControlLoop() {
 
 	for(int i=0; i<AREA_NUM; i++)
 		delete[] triggerArea_touch_coords[i];
+
+	if(touchControlManager != nullptr)
+		delete touchControlManager;
 
 	//VIC dist dist_cleanup();
 }

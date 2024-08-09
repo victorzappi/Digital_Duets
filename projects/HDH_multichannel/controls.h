@@ -8,6 +8,9 @@
 #ifndef CONTROLS_H_
 #define CONTROLS_H_
 
+#include "TouchControlManager.h"
+
+
 enum motionFinger_mode {motion_none, motion_bound, motion_ex, motion_list, motion_cnt};
 enum pressFinger_mode {press_none, press_prop, press_dmp, press_cnt};
 enum pinchFinger_mode {pinch_none, pinch_prop, pinch_dmp, pinch_cnt};
