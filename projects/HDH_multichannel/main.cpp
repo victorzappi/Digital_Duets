@@ -190,9 +190,21 @@ string device = ""; //"hw:1,0"; // playback device, use only if wanna specify bo
 //----------------------------------------
 string exciteFileFolder = getCurrentFilePath() + "/audiofiles";//"audiofiles_oren";//"audiofiles";
 string presetFileFolder = getCurrentFilePath() + "/presets";//"presets_oren";//"presets";
-//****************************************
-//****************************************
 
+
+
+//----------------------------------------
+// application channels
+//----------------------------------------
+unsigned short exInChannels = 2; 
+unsigned short exInChnOffset = 0;
+unsigned short hdhInChannels = 2; // same as nume of excitations, one per each hdh input channel
+unsigned short hdhdOutChannels = 2;
+unsigned short hdhOutChnOffset= 0; //@VIC 2;
+
+
+//****************************************
+//****************************************
 
 
 
@@ -223,9 +235,9 @@ int period_event;               // produce poll event after each period
 //----------------------------------------
 // sync and help variables
 //----------------------------------------
-// extern in contorls.cpp
+// extern in controls.cpp
 bool drumSynthInited = false;
-
+unsigned short excitationChannels = hdhInChannels;
 
 
 
@@ -294,12 +306,6 @@ int initDrumSynth(float ***domainPixels) {
 	// first check if fullscreen, must be done before init!
 	hyperDrumSynth->monitorSettings(fullscreen, monitorIndex);
 
-	// init
-	unsigned short exInChannels = 2; 
-	unsigned short exInChnOffset = 0;
-	unsigned short hdhInChannels = 2; // same as nume of excitations, one per each hdh input channel
-	unsigned short hdhdOutChannels = 2;
-	unsigned short hdhOutChnOffset= 0; //@VIC 2;
 	hyperDrumSynth->init(shaderLocation, domainSize, rate, rate_mul, period_size, excitationLevel, magnifier, exciteFileFolder, listenerCoord, 
 						 exInChannels, exInChnOffset, hdhInChannels, hdhdOutChannels, hdhOutChnOffset);
 	if(hyperDrumSynth->setDomain(excitationCoord, excitationDim, domainPixels, builtinPreset) != 0)

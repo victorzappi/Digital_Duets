@@ -326,7 +326,9 @@ bool showAreas = false;
 
 string *excitationNames = nullptr;
 
+// from main.cpp
 extern bool drumSynthInited;
+extern unsigned short excitationChannels;
 //----------------------------------------
 
 
@@ -437,6 +439,50 @@ void slowMotion(bool slowMo) {
 	hyperDrumSynth->setSlowMotion(slowMo);
 }
 
+void setAreaExcitationVolume(int area, double v) {
+	hyperDrumSynth->setAreaExcitationVolume(area, v*masterVolume);
+	//printf("Area %d excitation volume: %.2f [master volume: %2.f]\n", area, v, masterVolume);
+}
+
+void setAreaExcitationVolumeFixed(int area, double v) {
+	hyperDrumSynth->setAreaExcitationVolumeFixed(area, v*masterVolume);
+	//printf("Area %d excitation volume: %.2f [master volume: %2.f]\n", area, v, masterVolume);
+}
+
+
+inline void setAreaVolPress(double press, int area) {
+	double vol = expMapping(expMin/* , expMax */, expRange, expNorm, minPress, maxPress, rangePress, press, minVolume, rangeVolume);
+	setAreaExcitationVolumeFixed(area, vol*areaExcitationVol[area]*masterVolume);
+	/*printf("p: %f\n", press);
+	printf("***vol: %f***  [master volume: %2.f]\n", vol, masterVolume);*/
+}
+
+/*inline*/ void modulateAreaVolPress(double press, int area) {
+	exChannelModulatedVol[area] = expMapping(expMin/* , expMax */, expRange, expNorm, minPress, maxPress, rangePress, press, minVolume, rangeVolume);
+	setAreaExcitationVolume(area, exChannelModulatedVol[area]*areaExcitationVol[area]*masterVolume);
+	//printf("***exChannelModulatedVol[%d]: %f***  [master volume: %2.f]\n", area, exChannelModulatedVol[area], masterVolume);
+
+	// stores last pressure, in case we pass it to other area via preset change and hold
+	areaLastPressure[area] = pressure[triggerArea_touches[area].front()];
+}
+
+inline void setAreaImpPress(double press, int area) {
+
+	double pressoInput = maxPressImp*0.6 + maxPressImp*0.4*press/maxPressImp; // kludge to give sense of somewhat consistent velocity via pressure
+
+	double vol = expMapping(expMinImp/* , expMaxImp */, expRangeImp, expNormImp, minPressImp, maxPressImp, rangePressImp, pressoInput, minVolumeImp, rangeVolumeImp);
+	setAreaExcitationVolumeFixed(area, vol*areaExcitationVol[area]*masterVolume);
+	//printf("p: %f\n", press);
+/*	printf("***press: %f***\n", press);
+	printf("minPressImp: %f, maxPressImp %f\n", minPressImp, maxPressImp);
+	printf("minVolumeImp: %f, rangeVolumeImp %f\n", minVolumeImp, rangeVolumeImp);*/
+	//printf("pressoInput: %f\n", pressoInput);
+	//printf("***vol: %f***  [master volume: %2.f]\n", vol, masterVolume);
+	//printf("***cnt: %d***\n", cnt++);
+
+}
+
+
 void setBoundaryCell(int coordX, int coordY) {
 	//VIC dist float type = hyperDrumSynth->getCellType(coordX, coordY);
 
@@ -481,11 +527,11 @@ void setExcitationCell(int coordX, int coordY) {
 	//VIC dist dist_removeBound(coordX, coordY);
 }
 
-void setExcitationCell(int area, int coordX, int coordY) {
+void setExcitationCell(int exChannel, int coordX, int coordY) {
 	//VIC dist float type = hyperDrumSynth->getCellType(coordX, coordY);
 	//VIC dist bool wasBoundary = (type==HyperDrumhead::cell_boundary)||(type==HyperDrumhead::cell_dead);
 
-	if( hyperDrumSynth->setCell(coordX, coordY, /* area */-1, HyperDrumhead::cell_excitation, exChannelIndex)!=0 ) // changes also area [more prone to human errors?]
+	if( hyperDrumSynth->setCell(coordX, coordY, -1, HyperDrumhead::cell_excitation, exChannel)!=0 ) // area is not changed
 		return;
 
 	// add new excitation to the list and update distances
@@ -496,29 +542,6 @@ void setExcitationCell(int area, int coordX, int coordY) {
 	//VIC dist dist_removeBound(coordX, coordY);
 }
 
-void setFirstMovingExciteCoords(int area, int coordX, int coordY) {
-	//VIC dist float type = hyperDrumSynth->getCellType(coordX, coordY);
-	//VIC dist bool wasBoundary = (type==HyperDrumhead::cell_boundary)||(type==HyperDrumhead::cell_dead);
-
-	//printf("setFirstMovingExciteCoords %d %d %d\n", area, coordX, coordY);
-
-	hyperDrumSynth->setFirstMovingExciteCoords(exChannelIndex, coordX, coordY);
-
-	// add new excitation to the list and update distances
-	//VIC dist dist_addExcite(coordX, coordY);
-
-	// we may have to update the boundaries too
-	//VIC dist if(wasBoundary)
-	//VIC dist dist_removeBound(coordX, coordY);
-}
-
-void setNextMovingExciteCoords(int area, int coordX, int coordY) {
-
-	//printf("setNextMovingExciteCoords %d %d %d\n", area, coordX, coordY);
-
-	hyperDrumSynth->setNextMovingExciteCoords(exChannelIndex, coordX, coordY);
-
-}
 
 // this should be on its own medium prio thread?
 void fillArea(int coordX, int coordY, int newArea) {
@@ -575,7 +598,7 @@ void resetCell(int coordX, int coordY) {
 	//VIC dist dist_removeExcite(coordX, coordY);
 
 	// then check if we reset a boundary
-	type = hyperDrumSynth->getCellType(coordX, coordY);
+	//type = hyperDrumSynth->getCellType(coordX, coordY);
 	//VIC dist bool isBoundary = (type==HyperDrumhead::cell_boundary)||(type==HyperDrumhead::cell_dead);
 
 	// in we did, add new boundary to the list and update distances
@@ -591,6 +614,35 @@ void clearDomain() {
 
 void resetSimulation() {
 	hyperDrumSynth->resetSimulation();
+}
+
+
+
+void setPercussiveExcitation(int exChannel, int touch, int coordX, int coordY) {
+
+	setExcitationCell(exChannel, coordX, coordY);
+	setAreaImpPress((double)pressure[touch]/*maxPressImp*/, exChannel);
+
+	hyperDrumSynth->triggerAreaExcitation(exChannel);
+}
+
+void setFirstContinuousExcitation(int exChannel, int coordX, int coordY) {
+	//printf("setFirstContinuousExcitation %d %d %d\n", area, coordX, coordY);
+	hyperDrumSynth->setFirstMovingExciteCoords(exChannel, coordX, coordY);
+	hyperDrumSynth->triggerAreaExcitation(exChannel);
+}
+
+void setNextContinuousExcitation(int exChannel, int coordX, int coordY) {
+
+	//printf("setNextContinuousExcitation %d %d %d\n", area, coordX, coordY);
+
+	hyperDrumSynth->setNextMovingExciteCoords(exChannel, coordX, coordY);
+}
+
+void removeChannelExcitation(int channel) {
+	pair<int, int> coords = touchControlManager->getExcitationCoords(channel);
+	resetCell(coords.first, coords.second);
+	touchControlManager->removeExcitation(channel);
 }
 
 void switchShowAreas() {
@@ -613,6 +665,7 @@ void triggerAreaExcitation(int coordX, int coordY) {
 	hyperDrumSynth->triggerAreaExcitation(index);
 	//printf("++++++++++++++++++excite area %d!\n", index);
 }
+
 
 // can't be inline cos used also in other files [and cannot put in controls.h cos its needs hyperDrumSynth]
 /*inline*/ void dampAreaExcitation(int index) {
@@ -756,16 +809,6 @@ void changeAreaExcitationVolume(double delta) {
 
 	hyperDrumSynth->setAreaExcitationVolume(areaIndex, areaExcitationVol[areaIndex]*exChannelModulatedVol[areaIndex]*masterVolume); // modulated volume to make this transition smooth while on continuous excitation
 	printf("Area %d excitation volume: %.2f [master volume: %2.f]\n", areaIndex, areaExcitationVol[areaIndex], masterVolume);
-}
-
-void setAreaExcitationVolume(int area, double v) {
-	hyperDrumSynth->setAreaExcitationVolume(area, v*masterVolume);
-	//printf("Area %d excitation volume: %.2f [master volume: %2.f]\n", area, v, masterVolume);
-}
-
-void setAreaExcitationVolumeFixed(int area, double v) {
-	hyperDrumSynth->setAreaExcitationVolumeFixed(area, v*masterVolume);
-	//printf("Area %d excitation volume: %.2f [master volume: %2.f]\n", area, v, masterVolume);
 }
 
 template <typename T>
@@ -1246,37 +1289,6 @@ void openFrame() {
 
 
 
-inline void setAreaVolPress(double press, int area) {
-	double vol = expMapping(expMin/* , expMax */, expRange, expNorm, minPress, maxPress, rangePress, press, minVolume, rangeVolume);
-	setAreaExcitationVolumeFixed(area, vol*areaExcitationVol[area]*masterVolume);
-	/*printf("p: %f\n", press);
-	printf("***vol: %f***  [master volume: %2.f]\n", vol, masterVolume);*/
-}
-
-/*inline*/ void modulateAreaVolPress(double press, int area) {
-	exChannelModulatedVol[area] = expMapping(expMin/* , expMax */, expRange, expNorm, minPress, maxPress, rangePress, press, minVolume, rangeVolume);
-	setAreaExcitationVolume(area, exChannelModulatedVol[area]*areaExcitationVol[area]*masterVolume);
-	//printf("***exChannelModulatedVol[%d]: %f***  [master volume: %2.f]\n", area, exChannelModulatedVol[area], masterVolume);
-
-	// stores last pressure, in case we pass it to other area via preset change and hold
-	areaLastPressure[area] = pressure[triggerArea_touches[area].front()];
-}
-
-inline void setAreaImpPress(double press, int area) {
-
-	double pressoInput = maxPressImp*0.6 + maxPressImp*0.4*press/maxPressImp; // kludge to give sense of somewhat consistent velocity via pressure
-
-	double vol = expMapping(expMinImp/* , expMaxImp */, expRangeImp, expNormImp, minPressImp, maxPressImp, rangePressImp, pressoInput, minVolumeImp, rangeVolumeImp);
-	setAreaExcitationVolumeFixed(area, vol*areaExcitationVol[area]*masterVolume);
-	//printf("p: %f\n", press);
-/*	printf("***press: %f***\n", press);
-	printf("minPressImp: %f, maxPressImp %f\n", minPressImp, maxPressImp);
-	printf("minVolumeImp: %f, rangeVolumeImp %f\n", minVolumeImp, rangeVolumeImp);*/
-	//printf("pressoInput: %f\n", pressoInput);
-	//printf("***vol: %f***  [master volume: %2.f]\n", vol, masterVolume);
-	//printf("***cnt: %d***\n", cnt++);
-
-}
 
 
 
@@ -2092,7 +2104,7 @@ void updateControlStatus(hyperDrumheadFrame *frame) {
 			setAreaVolPress((double)areaLastPressure[newAreaID], newAreaID);
 
 			//setExcitationCell(i, coord.first, coord.second);
-			//setNextMovingExciteCoords(newAreaID, coord.first, coord.second);
+			//setNextContinuousExcitation(newAreaID, coord.first, coord.second);
 
 
 			// if area has changed...
@@ -2147,11 +2159,11 @@ void updateControlStatus(hyperDrumheadFrame *frame) {
 			// from percussive to continuous
 			else if( checkPercussive(i, prevExciteID[i]) && !checkPercussive(newAreaID, newExciteID)) {
 				//dampAreaExcitation(i);
-				setFirstMovingExciteCoords(newAreaID, coord.first, coord.second);
+				setFirstContinuousExcitation(newAreaID, coord.first, coord.second);
 			}
 			// from continuous to continuous
 			else if( !checkPercussive(i, prevExciteID[i]) && !checkPercussive(newAreaID, newExciteID)) {
-				setFirstMovingExciteCoords(newAreaID, coord.first, coord.second); // setFirst instead of setMoving because excitations are wiped when preset is changed
+				setFirstContinuousExcitation(newAreaID, coord.first, coord.second); // setFirst instead of setMoving because excitations are wiped when preset is changed
 			}
 
 
@@ -2209,27 +2221,142 @@ void reloadPreset() {
 
 
 
-void handleNewTouch2(int currentSlot, int coord[2]) {
-	touchControlManager->assignControl(currentSlot);
+
+
+
+void setNextControlAssignment(ControlAssignment nextAssignment, bool scheduleStop) {
+	
+	ControlAssignment pendingAssignment;
+	touchControlManager->getNextControlAssignment(pendingAssignment);
+
+	if(pendingAssignment.controlType == nextAssignment.controlType &&
+	   pendingAssignment.control == nextAssignment.control && 
+	   pendingAssignment.negated == nextAssignment.negated ) {
+		touchControlManager->stopAssignmentWait();
+		printf("Next touch assignment deleted\n");
+		return;
+	}
+
+	touchControlManager->setNextControlAssignment(nextAssignment, scheduleStop);
+
+	string controlType = "";
+	string control = "";
+
+	switch (nextAssignment.controlType)
+	{
+	case type_motion:
+		controlType = "motion";
+		switch (nextAssignment.control)
+		{
+		case control_motion_excite:
+			control = "excitation";
+			break;		
+		case control_motion_listener:
+			control = "listener";
+			break;
+		case control_motion_boundary:
+			control = "boundary";
+			break;
+		default:
+			break;
+		}
+		break;
+
+	case type_pressure:
+		controlType = "pressure";
+		break;
+
+	case type_pinch:
+		controlType = "type_pinch";
+		break;
+
+	default:
+		break;
+	}
+
+
+	printf("Next touch assignment: control %s - %s", controlType.c_str(), control.c_str());
+	if(nextAssignment.negated)
+		printf(" (negated)\n");
+
+	if(scheduleStop)
+		printf(" one shot\n");
+	else
+		printf(" persistent\n");
+
+}
+
+void assignControl(int touch, int coords[2]) {
+
+	ControlAssignment pendingAssignment;
+	touchControlManager->getNextControlAssignment(pendingAssignment);
+	
+	if (pendingAssignment.controlType==type_motion) {
+
+		// if we are about to assign an excitation control...
+		if(pendingAssignment.control==control_motion_excite) {
+			pair<int, int> crds = {coords[0], coords[1]};
+			int channel = touchControlManager->findExcitationCoords(crds);
+
+			// ...but the current location is another excitation with different channel, then skip!
+			if(channel>-1 && exChannelIndex!=channel)
+				return;
+		}
+		//else if(pendingAssignment.control==control_motion_listener) // same for listener
+		//...
+		
+	}
+	
+
+	touchControlManager->assignControl(touch);
+}
+
+
+//TODO define a hook logic and then tackle drag for excitation
+void handleNewTouch2(int currentSlot, int coords[2]) {
+	printf("---------New touch %d\n", currentSlot);
+
+	assignControl(currentSlot, coords);
 
 	ControlAssignment assignment;
+	// first check if touch has control assigmnment
 	if( touchControlManager->getControl(currentSlot, assignment) ) {
 
 		if(assignment.controlType == type_motion) {
 
 			if(assignment.control == control_motion_excite) {
 
-				int touchedArea = getAreaIndex(coord[0], coord[1]);
-				if( !checkPercussive(touchedArea) ) {
-					//TODO adapt logic from 2368, but be careful, you have to take into account if channel excitation was dropped already
+				//if(WE ARE TOUCHING ANOTHER EXCITATION?)
+
+				if( !checkBoundaries(coords[0], coords[1]) ) {
+					
+					if( !checkPercussive(exChannelIndex) ) {
+						// if first time this channel excitation is triggered
+						if( touchControlManager->isExcitationPresent(exChannelIndex) == 0 )
+							setFirstContinuousExcitation(exChannelIndex, coords[0], coords[1]); // add excitation and prepare crossfade
+						else if(touchControlManager->getExcitationTouchBinding(exChannelIndex) == -1)  // or if this channel excitaiton is not being moved by any other touch
+							setNextContinuousExcitation(exChannelIndex, coords[0], coords[1]); // adds next [we'll crossfade there from current] and deletes previous
+					}
+					else {
+						// this check is needed because if a continuous excitation is down and we switch to a percussive excitation, there is a left over excitation cell that needs to be removed
+						if( touchControlManager->isExcitationPresent(exChannelIndex) != 0 )
+							removeChannelExcitation(exChannelIndex);
+						setPercussiveExcitation(exChannelIndex, currentSlot, coords[0], coords[1]);
+					}
+
+					touchControlManager->storeExcitationCoords(exChannelIndex, coords);
+					touchControlManager->bindTouchToExcitation(currentSlot, exChannelIndex);
+					touchControlManager->setTouchOnBoundary(exChannelIndex, false);
 				}
-				//else ...
+				else 
+					touchControlManager->setTouchOnBoundary(currentSlot, true);
 
 			}
 			else if(assignment.control == control_motion_listener) {
-
+				//int touchedArea = getAreaIndex(coord[0], coord[1]);
 			}
 			else if(assignment.control == control_motion_boundary) {
+				//int touchedArea = getAreaIndex(coord[0], coord[1]);
 			}
 		
 		}
@@ -2237,6 +2364,48 @@ void handleNewTouch2(int currentSlot, int coord[2]) {
 	}
 
 }
+
+
+
+void handleTouchDrag2(int currentSlot, int coords[2]) {
+	printf("---------Touch %d drag, coords %d - %d\n", currentSlot, coords[0], coords[1]);
+
+}
+
+
+void handleTouchRelease2(int currentSlot) {
+	printf("---------Released touch %d\n", currentSlot);
+
+	ControlAssignment assignment;
+	// first check if touch has control assigmnment
+	if( touchControlManager->getControl(currentSlot, assignment) ) {
+
+		if(assignment.controlType == type_motion) {
+
+			if(assignment.control == control_motion_excite) {
+				
+				int channel = touchControlManager->getTouchExcitationBinding(currentSlot);
+				if(channel != -1) {
+					
+					if( checkPercussive(channel) ) {
+						hyperDrumSynth->dampAreaExcitation(channel);
+						removeChannelExcitation(channel);
+					}
+
+					touchControlManager->unbindTouchFromExcitation(currentSlot);
+				}
+			}
+			//else
+		}
+		//else
+
+		touchControlManager->removeControl(currentSlot);
+	}
+
+	touchControlManager->setTouchOnBoundary(currentSlot, false);
+
+}
+
 
 
 void handleNewTouch(int currentSlot, int touchedArea, int coord[2]) {
@@ -2369,7 +2538,7 @@ void handleNewTouch(int currentSlot, int touchedArea, int coord[2]) {
 
 				// if regular first touch
 				if(!areaExciteOnHold[touchedArea])
-					setFirstMovingExciteCoords(touchedArea, coord[0], coord[1]); // add excitation and prepare crossfade
+					setFirstContinuousExcitation(touchedArea, coord[0], coord[1]); // add excitation and prepare crossfade
 				// if area was on hold
 				else {
 					// we kill held touch
@@ -2379,7 +2548,7 @@ void handleNewTouch(int currentSlot, int touchedArea, int coord[2]) {
 					// crossfade from previous excitation on hold!
 					pair<int, int> coord_next(coord[0], coord[1]);
 					// adds next [we'll crossfade there from current] and deletes previous
-					setNextMovingExciteCoords(touchedArea, coord_next.first, coord_next.second);
+					setNextContinuousExcitation(touchedArea, coord_next.first, coord_next.second);
 
 					// reset held touch
 					triggerArea_touches[touchedArea].remove(heldTouch);
@@ -2788,7 +2957,7 @@ void handleTouchDrag(int currentSlot, int touchedArea, int coord[2]) {
 					// these are previous and next
 					pair<int, int> coord_next(coord[0], coord[1]);
 					// adds next [we'll crossfade there from current] and deletes previous
-					setNextMovingExciteCoords(touchedArea, coord_next.first, coord_next.second);
+					setNextContinuousExcitation(touchedArea, coord_next.first, coord_next.second);
 
 					// remove previous and make shift [current -> prev, next -> current]
 					triggerArea_touch_coords[touchedArea][currentSlot].pop_front();
@@ -2857,20 +3026,23 @@ void mouseLeftPress(float xpos, float ypos) {
 	updateTouchRecordsMouse(xpos, ypos, true);
 
 	// turn to domain coords (:
-	int coord[2] = {(int)xpos, (int)ypos};
-	getCellDomainCoords(coord); // input is relative to window
+	int coords[2] = {(int)xpos, (int)ypos};
+	getCellDomainCoords(coords); // input is relative to window
 
-	newTouch[mouseTouch] = true; // for handleNewTouch()
-	int touchedArea = getAreaIndex(coord[0], coord[1]);
+	// newTouch[mouseTouch] = true; // for handleNewTouch()
+	// int touchedArea = getAreaIndex(coords[0], coords[1]);
 
-	if(!modifierActions(touchedArea, coord[0], coord[1])) {
-		pressure[mouseTouch] = maxPressure;
-		areaLastPressure[touchedArea] = maxPressure;
-		handleNewTouch(mouseTouch, touchedArea, coord);
-	}
+	// if(!modifierActions(touchedArea, coords[0], coords[1])) {
+	// 	pressure[mouseTouch] = maxPressure;
+	// 	areaLastPressure[touchedArea] = maxPressure;
+	// 	//handleNewTouch(mouseTouch, touchedArea, coord);
+	// }
 
-	prevTouchedArea[mouseTouch] = touchedArea;
-	newTouch[mouseTouch] = false; // dealt with
+	// prevTouchedArea[mouseTouch] = touchedArea;
+	// newTouch[mouseTouch] = false; // dealt with
+
+	pressure[mouseTouch] = maxPressure;
+	handleNewTouch2(mouseTouch, coords);
 }
 
 void mouseLeftDrag(float xpos, float ypos) {
@@ -2880,24 +3052,29 @@ void mouseLeftDrag(float xpos, float ypos) {
 	updateTouchRecordsMouse(xpos, ypos);
 
 	// turn to domain coords (:
-	int coord[2] = {(int)xpos, (int)ypos};
-	getCellDomainCoords(coord); // input is relative to window
+	int coords[2] = {(int)xpos, (int)ypos};
+	getCellDomainCoords(coords); // input is relative to window
 
-	int touchedArea = getAreaIndex(coord[0], coord[1]);
+	// int touchedArea = getAreaIndex(coords[0], coords[1]);
 
-	if(!modifierActions(touchedArea, coord[0], coord[1])) {
-		pressure[mouseTouch] = maxPressure;
-		areaLastPressure[touchedArea] = maxPressure;
-		handleTouchDrag(mouseTouch, touchedArea, coord);
-	}
+	// if(!modifierActions(touchedArea, coords[0], coords[1])) {
+	// 	pressure[mouseTouch] = maxPressure;
+	// 	areaLastPressure[touchedArea] = maxPressure;
+	// 	handleTouchDrag(mouseTouch, touchedArea, coords);
+	// }
 
-	prevTouchedArea[mouseTouch] = touchedArea;
+	// prevTouchedArea[mouseTouch] = touchedArea;
+
+	pressure[mouseTouch] = maxPressure;
+	handleTouchDrag2(mouseTouch, coords);
 }
 
 void mouseLeftRelease(/* float xpos, float ypos */) {
 	int mouseTouch = touchSlots-1;
 
-	handleTouchRelease(mouseTouch);
+	//handleTouchRelease(mouseTouch);
+	
+	handleTouchRelease2(mouseTouch);
 }
 
 void mouseRightPressOrDrag(float xpos, float ypos) {
@@ -3107,6 +3284,10 @@ int initControlThreads() {
 	// these are needed for keyboard controls
 	initCallbacks();
 
+	touchControlManager = new TouchControlManager(touchSlots, excitationChannels);
+	ControlAssignment initialAssignment = {type_motion, control_motion_excite, false};
+	touchControlManager->setNextControlAssignment(initialAssignment);
+
 
 
 	// init touch vars
@@ -3233,9 +3414,6 @@ int initControlThreads() {
 		pinchRef_areaProp[i] = -1;
 		pinchRef_areaDist[i] = -1;
 	}
-
-	touchControlManager = new TouchControlManager(touchSlots);
-
 
 	// general exponential curve values
 	expMax = 2;

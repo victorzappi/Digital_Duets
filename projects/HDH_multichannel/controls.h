@@ -49,6 +49,10 @@ void reloadPreset();
 
 void changeMousePos(int mouseX, int mouseY);
 
+
+
+void setNextControlAssignment(ControlAssignment nextAssignment, bool scheduleStop=true);
+
 // only for keyboard
 void setChannelExcitationID(int id);
 void changeAreaIndex(int index);
@@ -82,5 +86,6 @@ void handleNewTouch(int currentSlot, int touchedArea, int coord[2]);
 void handleTouchDrag(int currentSlot, int touchedArea, int coord[2]);
 void handleTouchRelease(int currentSlot);
 
+void handleNewTouch2(int currentSlot, int coords[2]);
 
 #endif /* CONTROLS_H_ */

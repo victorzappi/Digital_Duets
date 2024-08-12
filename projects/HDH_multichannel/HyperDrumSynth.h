@@ -136,8 +136,8 @@ inline int HyperDrumSynth::fromWindowToDomain(int *coords) {
 inline int HyperDrumSynth::setListenerPosition(int x, int y) {
 	return hyperDrumhead.setListenerPosition(x, y);
 }
-inline int HyperDrumSynth::setAreaListenerPosition(int index, int x, int y) {
-	return hyperDrumhead.setAreaListenerPosition(index, 1, x, y); //VIC BE CAREFUL, here channel 1 is hard wired for now 
+inline int HyperDrumSynth::setAreaListenerPosition(int channel, int x, int y) {
+	return hyperDrumhead.setAreaListenerPosition(0, channel, x, y); //VIC BE CAREFUL, here area 0 is hard wired for now 
 }
 inline int HyperDrumSynth::initAreaListenerPosition(int index, int x, int y) {
 	return hyperDrumhead.initAreaListenerPosition(index, 0, x, y);

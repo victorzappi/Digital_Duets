@@ -34,6 +34,8 @@ bool cIsPressed = false;
 bool vIsPressed = false;
 
 
+ControlAssignment nextAssignment;
+
 void key_callback(GLFWwindow *, int key, int scancode, int action, int mods) {
 	// not used, so we mute warnings
 	(void)scancode;
@@ -84,90 +86,90 @@ void key_callback(GLFWwindow *, int key, int scancode, int action, int mods) {
 
 				case GLFW_KEY_0:
 				case GLFW_KEY_KP_0:
-					if(leftCtrlIsPressed)
+					if(rightCtrlIsPressed)
 						setChannelExcitationID(0+10*shiftIsPressed);
-					else if(rightCtrlIsPressed)
+					else if(leftCtrlIsPressed)
 						changeExChannel(0+10*shiftIsPressed);
 					else
 						changeAreaIndex(0);
 					break;
 				case GLFW_KEY_1:
 				case GLFW_KEY_KP_1:
-					if(leftCtrlIsPressed) 
+					if(rightCtrlIsPressed) 
 				    	setChannelExcitationID(1+10*shiftIsPressed);
-					else if(rightCtrlIsPressed)
+					else if(leftCtrlIsPressed)
 						changeExChannel(1+10*shiftIsPressed);
 					else
 						changeAreaIndex(1);
 					break;
 				case GLFW_KEY_2:
 				case GLFW_KEY_KP_2:
-					if(leftCtrlIsPressed)
+					if(rightCtrlIsPressed)
 						setChannelExcitationID(2+10*shiftIsPressed);
-					else if(rightCtrlIsPressed)
+					else if(leftCtrlIsPressed)
 						changeExChannel(2+10*shiftIsPressed);
 					else
 						changeAreaIndex(2);
 					break;
 				case GLFW_KEY_3:
 				case GLFW_KEY_KP_3:
-					if(leftCtrlIsPressed)
+					if(rightCtrlIsPressed)
 						setChannelExcitationID(3+10*shiftIsPressed);
-					else if(rightCtrlIsPressed)
+					else if(leftCtrlIsPressed)
 						changeExChannel(3+10*shiftIsPressed);
 					else
 						changeAreaIndex(3);
 					break;
 				case GLFW_KEY_4:
 				case GLFW_KEY_KP_4:
-					if(leftCtrlIsPressed)
+					if(rightCtrlIsPressed)
 						setChannelExcitationID(4+10*shiftIsPressed);
-					else if(rightCtrlIsPressed)
+					else if(leftCtrlIsPressed)
 						changeExChannel(4+10*shiftIsPressed);
 					else
 						changeAreaIndex(4);
 					break;
 				case GLFW_KEY_5:
 				case GLFW_KEY_KP_5:
-					if(leftCtrlIsPressed)
+					if(rightCtrlIsPressed)
 						setChannelExcitationID(5+10*shiftIsPressed);
-					else if(rightCtrlIsPressed)
+					else if(leftCtrlIsPressed)
 						changeExChannel(5+10*shiftIsPressed);
 					else
 						changeAreaIndex(5);
 					break;
 				case GLFW_KEY_6:
 				case GLFW_KEY_KP_6:
-					if(leftCtrlIsPressed)
+					if(rightCtrlIsPressed)
 						setChannelExcitationID(6+10*shiftIsPressed);
-					else if(rightCtrlIsPressed)
+					else if(leftCtrlIsPressed)
 						changeExChannel(6+10*shiftIsPressed);
 					else
 						changeAreaIndex(6);
 					break;
 				case GLFW_KEY_7:
 				case GLFW_KEY_KP_7:
-					if(leftCtrlIsPressed)
+					if(rightCtrlIsPressed)
 						setChannelExcitationID(7+10*shiftIsPressed);
-					else if(rightCtrlIsPressed)
+					else if(leftCtrlIsPressed)
 						changeExChannel(7+10*shiftIsPressed);
 					else
 						changeAreaIndex(7);
 					break;
 				case GLFW_KEY_8:
 				case GLFW_KEY_KP_8:
-					if(leftCtrlIsPressed)
+					if(rightCtrlIsPressed)
 						setChannelExcitationID(8+10*shiftIsPressed);
-					else if(rightCtrlIsPressed)
+					else if(leftCtrlIsPressed)
 						changeExChannel(8+10*shiftIsPressed);
 					else
 						changeAreaIndex(8);
 					break;
 				case GLFW_KEY_9:
 				case GLFW_KEY_KP_9:
-					if(leftCtrlIsPressed)
+					if(rightCtrlIsPressed)
 						setChannelExcitationID(9+10*shiftIsPressed);
-					else if(rightCtrlIsPressed)
+					else if(leftCtrlIsPressed)
 						changeExChannel(9+10*shiftIsPressed);
 					else
 						changeAreaIndex(9);
@@ -176,13 +178,9 @@ void key_callback(GLFWwindow *, int key, int scancode, int action, int mods) {
 
 				// pre finger interaction mode [for continuous control only]
 				case GLFW_KEY_A:
-					if(!altIsPressed)
-						changeFirstPreFingerMotion(motion_bound, shiftIsPressed);
-					else {
-						changePreFingersMotionDynamic(motion_bound, shiftIsPressed);
-						endPreFingersMotionDynamic(); // otherwise all successive touches will be pre fingers
-					}
-					break;
+					nextAssignment = {type_motion, control_motion_excite, shiftIsPressed};
+				 	setNextControlAssignment(nextAssignment, !altIsPressed); // alt does not schedule stop of assignment
+				 	break;
 				case GLFW_KEY_S:
 					if(leftCtrlIsPressed || rightCtrlIsPressed)
 						savePreset();
