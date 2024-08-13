@@ -1617,7 +1617,7 @@ void HyperDrumhead::moveExcitation(int index) {
 	int exY = nextExciteCoordY[index].load();
 
 	// am i already there?
-	if(exX == movingExciteCoords[1]->first && exY == movingExciteCoords[1]->second )
+	if(exX == movingExciteCoords[1][index].first && exY == movingExciteCoords[1][index].second )
 		return;
 
 	// one more check

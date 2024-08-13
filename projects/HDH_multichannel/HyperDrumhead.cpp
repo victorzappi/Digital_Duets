@@ -110,8 +110,8 @@ HyperDrumhead::HyperDrumhead() {
 	fps = 63;
 
 	// time test
-	start_ = timeval{0};
-	end_   = timeval{0};
+	start_ = timeval{0, 0};
+	end_   = timeval{0, 0};
 }
 
 HyperDrumhead::~HyperDrumhead() {
@@ -304,7 +304,7 @@ int HyperDrumhead::init(string shaderLocation, int *domainSize, int audioRate, i
 double **HyperDrumhead::getFrameBuffer(int numOfSamples, double **input) {
 
 	// move excitations to new coordinates
-	for(int i=0; i<numOfAreas; i++) {
+	for(int i=0; i<in_channels; i++) { //@VIC
 		//if(movingExcitation[i])
 			moveExcitation(i);
 	}
@@ -328,7 +328,7 @@ double **HyperDrumhead::getFrameBuffer(int numOfSamples, double **input) {
 	getSamples(numOfSamples);
 
 	// if an excitation was scheduled for removal via a touch release...
-	for(int i=0; i<numOfAreas; i++) {
+	for(int i=0; i<in_channels; i++) { //@VIC
 		if(resetMovingExcite[i])
 			deleteMovingExcite(i); // ...call this to check if it is time to remove it!
 	}
@@ -516,12 +516,6 @@ int HyperDrumhead::setCell(int x, int y, float area, float type, float bgain_or_
 	x = coords[0];
 	y = coords[1];
 
-	// when setting excitations, begain contains channel and area remains unchanged
-	// if(type == cell_excitation || type ==  cell_excitationA || type ==  cell_excitationB) {
-	// 	bgain_or_channel = area;
-	// 	area = -1;
-	// }
-
 	if(hyperPixelDrawer->setCell(x, y, (GLfloat)area, (GLfloat)type, (GLfloat)bgain_or_channel) != 0)
 		return 1;
 
@@ -552,43 +546,6 @@ int HyperDrumhead::resetCellType(int x, int y) {
 
 	return 0;
 }
-
-/*int HyperDrumhead::setCellCrossExcite(int rstX, int rstY, int exX, int exY, float area, float type) {
-	if(!inited)
-		return -1;
-
-	// reset old excitation
-	int coords[2] = {rstX, rstY};
-	if( fromDomainToGlWindow(coords)==0 ) {
-		hyperPixelDrawer->resetCellType(coords[0], coords[1]);
-		printf("reset %d %d\n", coords[0], coords[1]);
-	}
-	else
-		printf("FIRST DRAG>>>>No prev to REMOVE\n");
-
-
-
-	// set new one
-	coords[0] = exX;
-	coords[1] = exY;
-	if( fromDomainToGlWindow(coords)!=0 )
-		return -1;
-
-	// checks current deck and determines crossfade target
-	int deck = (int)exciteCurrentDeck[(int)area];
-	printf("----current deck: %d, will go to %d, so PUT excitation %s\n", deck, 1-deck, (deck==0) ? "B" : "A");
-	cell_type type = (deck==0) ? cell_excitationB : cell_excitationA; // if 0 goes to B, if 1 goes to A
-
-	if(hyperPixelDrawer->setCell(coords[0], coords[1], (GLfloat)area, (GLfloat)type) != 0)
-		return -2;
-
-	// update pixelDrawer and trigger area excitation crossfade
-	updateExcitations = true;
-	updateExciteCrossfade[int(area)] = true;
-	updateExciteCrossfadeRender[int(area)] = true;
-
-	return deck; // returns next local deck [the one we end to]
-}*/
 
 float HyperDrumhead::getCellArea(int x, int y) {
 	if(!inited)
@@ -1168,7 +1125,7 @@ int HyperDrumhead::initAdditionalUniforms() {
 		setUpAreaEraser(i);
 	}
 
-	for(int i=0; i<numOfAreas; i++) {
+	for(int i=0; i<in_channels; i++) {
 		setUpExcitationCrossfadeRender(i);
 		checkError("glUniform1f exciteCrossfade");
 	}
@@ -1318,7 +1275,7 @@ void HyperDrumhead::computeSamples(int numOfSamples, double **input) {
 						exciteCrossfade[i]+=exciteCrossfadeDelta;
 					else
 						exciteCrossfade[i]-=exciteCrossfadeDelta;
-					//printf("exciteCrossfade[%d] %f\n", i, exciteCrossfade[i]);
+					// printf("exciteCrossfade[%d] %f\n", i, exciteCrossfade[i]);
 					glUniform1f(exciteCrossfade_loc[i], exciteCrossfade[i]);
 				}
 			}
@@ -1486,7 +1443,7 @@ void HyperDrumhead::getSamples(int numSamples) {
 						exciteCrossfade[i]   = 0;
 					}
 					updateExciteCrossfade[i] = false;
-					// remove previous moving exciatation from crossfaded areas
+					// remove previous moving excitation from crossfaded areas
 					if(movingExcitation[i])
 						deletePrevMovingExcite(i);
 					//printf("\tarea[%d] deck arrived to %d\n", i, exciteCurrentDeck[i]);
@@ -1675,7 +1632,7 @@ void HyperDrumhead::updateUniforms() {
 		}
 	}
 
-	for(int i=0; i<numOfAreas; i++) {
+	for(int i=0; i<in_channels; i++) {
 		if(updateExciteCrossfade[i]) {
 			doExciteCrossfade = true;
 			break; // one is enough here! the stopping logic is in getSamples(...)
@@ -1698,7 +1655,7 @@ void HyperDrumhead::updateUniformsRender() {
 		}
 	}
 
-	for(int i=0; i<numOfAreas; i++) {
+	for(int i=0; i<in_channels; i++) {
 		if(updateExciteCrossfadeRender[i]) {
 			setUpExcitationCrossfadeRender(i);
 			updateExciteCrossfadeRender[i] = false;
@@ -1776,7 +1733,7 @@ void HyperDrumhead::setFirstMovingExciteCoords(int index, int exX, int exY) {
 	if(setCell(exX, exY, -1, type, index))
 		return;
 
-	//printf("\tcurrent set %d %d\n", exX, exY);
+	// printf("\tcurrent set %d %d\n", exX, exY);
 
 	movingExcitation[index] = false;
 
@@ -1802,19 +1759,7 @@ void HyperDrumhead::setNextMovingExciteCoords(int index, int exX, int exY) {
 	nextExciteCoordX[index].store(exX);
 	nextExciteCoordY[index].store(exY);
 
-	//printf("\tNEXT UPDATED %d %d\n", exX, exY);
-
-
-/*	if(exX == movingExciteCoords[0]->first && exY == movingExciteCoords[0]->second )
-		return;
-
-	// set next
-	movingExciteCoords[0][index].first = exX;
-	movingExciteCoords[0][index].second = exY;
-
-	//printf("\tnext set %d %d\n", movingExciteCoords[0][index].first, movingExciteCoords[0][index].second);
-
-	movingExcitation[index] = true;*/
+	// printf("\tNEXT UPDATED %d %d\n", exX, exY);
 }
 
 void HyperDrumhead::moveExcitation(int index) {
@@ -1826,7 +1771,7 @@ void HyperDrumhead::moveExcitation(int index) {
 	int exY = nextExciteCoordY[index].load();
 
 	// am i already there?
-	if(exX == movingExciteCoords[1]->first && exY == movingExciteCoords[1]->second )
+	if(exX == movingExciteCoords[1][index].first && exY == movingExciteCoords[1][index].second )
 		return;
 
 	// one more check
@@ -1849,14 +1794,14 @@ void HyperDrumhead::moveExcitation(int index) {
 	movingExciteCoords[0][index].first = exX;
 	movingExciteCoords[0][index].second = exY;
 
-	//printf("\tnext set %d %d\n", movingExciteCoords[0][index].first, movingExciteCoords[0][index].second);
+	// printf("\tnext set %d %d\n", movingExciteCoords[0][index].first, movingExciteCoords[0][index].second);
 
 	// this is need to delete the previous excitation once we reach the destination excitation, at the end of render loop
 	movingExcitation[index] = true;
 
 	// checks current deck and determines crossfade target
 	int deck = (int)exciteCurrentDeck[(int)index];
-	//printf("----current deck: %d, will go to %d, so PUT excitation %s\n", deck, 1-deck, (deck==0) ? "B" : "A");
+	// printf("----current deck: %d, will go to %d, so PUT excitation %s\n", deck, 1-deck, (deck==0) ? "B" : "A");
 	cell_type type = (deck==0) ? cell_excitationB : cell_excitationA; // if 0 goes to B, if 1 goes to A
 	// add new excitatiton [destination]
 	if(hyperPixelDrawer->setCell(coords[0], coords[1], (GLfloat)-1, (GLfloat)type, (GLfloat)index) != 0)
@@ -1867,13 +1812,13 @@ void HyperDrumhead::moveExcitation(int index) {
 	updateExciteCrossfade[int(index)] = true;
 	updateExciteCrossfadeRender[int(index)] = true;
 
-	//printf("\tmoving from current %d %d to next %d %d\n", movingExciteCoords[1][index].first, movingExciteCoords[1][index].second, movingExciteCoords[0][index].first, movingExciteCoords[0][index].second);
+	// printf("\tmoving from current %d %d to next %d %d\n", movingExciteCoords[1][index].first, movingExciteCoords[1][index].second, movingExciteCoords[0][index].first, movingExciteCoords[0][index].second);
 }
 
 
 
 void HyperDrumhead::deletePrevMovingExcite(int index) {
-	//printf("\tarrived at %d %d \n", movingExciteCoords[0][index].first, movingExciteCoords[0][index].second);
+	// printf("\tarrived at %d %d \n", movingExciteCoords[0][index].first, movingExciteCoords[0][index].second);
 
 	// reset current excitation, now old
 	int coords[2];
@@ -1883,7 +1828,7 @@ void HyperDrumhead::deletePrevMovingExcite(int index) {
 	if( fromDomainToGlWindow(coords)==0 ) {
 		hyperPixelDrawer->resetCellType(coords[0], coords[1]);
 		updatePixels = true; // reset will be in effect in the next render call
-		//printf("\treset %d %d\n", movingExciteCoords[1][index].first, movingExciteCoords[1][index].second);
+		// printf("\treset %d %d\n", movingExciteCoords[1][index].first, movingExciteCoords[1][index].second);
 	}
 
 	// update current, so that it is equal to next [arrived]
@@ -1900,7 +1845,7 @@ void HyperDrumhead::deleteMovingExcite(int index) {
 	coords[0] = resetExciteCoordX[index].load();
 	coords[1] = resetExciteCoordY[index].load();
 
-	//printf("\ttry scheduled removal of %d %d --- compared to %d %d\n", movingExciteCoords[0][index].first, movingExciteCoords[0][index].second, coords[0], coords[1]);
+	// printf("\ttry scheduled removal of %d %d --- compared to %d %d\n", movingExciteCoords[0][index].first, movingExciteCoords[0][index].second, coords[0], coords[1]);
 
 	//is the current excitatation the one that was scheduled for removal via touch release?
 	if( movingExciteCoords[0][index].first != coords[0] || movingExciteCoords[0][index].second != coords[1])
@@ -1910,7 +1855,7 @@ void HyperDrumhead::deleteMovingExcite(int index) {
 	fromDomainToGlWindow(coords);
 	hyperPixelDrawer->resetCellType(coords[0], coords[1]); // reset it
 	updatePixels = true; // reset will be in effect in the next render call
-	//printf("\tcompleted scheduled removal of %d %d\n", movingExciteCoords[1][index].first, movingExciteCoords[1][index].second);
+	// printf("\tcompleted scheduled removal of %d %d\n", movingExciteCoords[1][index].first, movingExciteCoords[1][index].second);
 	// signal removal schedule is done
 	resetMovingExcite[index] = false;
 

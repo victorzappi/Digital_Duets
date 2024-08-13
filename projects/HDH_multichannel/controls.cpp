@@ -634,7 +634,7 @@ void setFirstContinuousExcitation(int exChannel, int coordX, int coordY) {
 
 void setNextContinuousExcitation(int exChannel, int coordX, int coordY) {
 
-	//printf("setNextContinuousExcitation %d %d %d\n", area, coordX, coordY);
+	// printf("setNextContinuousExcitation %d %d %d\n", exChannel, coordX, coordY);
 
 	hyperDrumSynth->setNextMovingExciteCoords(exChannel, coordX, coordY);
 }
@@ -921,7 +921,7 @@ void changeAreaIndex(int index) {
 }
 
 void changeExChannel(int channel) {
-	if(channel <exChannels) {
+	if(channel<exChannels) {
 		exChannelIndex = channel;
 		int id = hyperDrumSynth->getAreaExcitationId(exChannelIndex);
 		printf("Current excitation channel: %d\n", exChannelIndex);
@@ -2222,13 +2222,12 @@ void reloadPreset() {
 
 
 
-
-
 void setNextControlAssignment(ControlAssignment nextAssignment, bool scheduleStop) {
 	
 	ControlAssignment pendingAssignment;
 	touchControlManager->getNextControlAssignment(pendingAssignment);
 
+	// check if same assignment is scheduled twice in a row
 	if(pendingAssignment.controlType == nextAssignment.controlType &&
 	   pendingAssignment.control == nextAssignment.control && 
 	   pendingAssignment.negated == nextAssignment.negated ) {
@@ -2286,6 +2285,42 @@ void setNextControlAssignment(ControlAssignment nextAssignment, bool scheduleSto
 
 }
 
+
+// this can be used to check if a touch is on any excitation or on any listener!
+inline int searchForTouchedChannel(vector< pair<int, int> > tagetCoordVec, int candidateCoords[2], int min_dist=0) {
+
+	if(min_dist==0) {
+		for(unsigned int i=0; i<tagetCoordVec.size(); i++) {
+        	if(tagetCoordVec[i].first == candidateCoords[0] && tagetCoordVec[i].second == candidateCoords[1])
+            	return i;
+    	}
+		return -1;
+	}
+	
+	
+	for(unsigned int chn=0; chn<tagetCoordVec.size(); chn++) {
+		// squared dist
+		int dist = abs((tagetCoordVec[chn].first-candidateCoords[0])*(tagetCoordVec[chn].first-candidateCoords[0]) + (tagetCoordVec[chn].second-candidateCoords[1])*(tagetCoordVec[chn].second-candidateCoords[1]) );
+		if(dist<min_dist)
+			return chn;
+		
+	}
+	return -1; // no channel touched
+}
+
+// this can be used to check if a touch is on any excitation or on any listener with a different channel than the one passed
+bool isTouchingDifferentChannel(int currentChannel, vector< pair<int, int> > tagetCoordVec, int candidateCoords[2]) {
+	int touchedExciteChannel = searchForTouchedChannel(tagetCoordVec, candidateCoords);
+	if(touchedExciteChannel>-1 && currentChannel!=touchedExciteChannel)
+			return true;
+	return false;
+}
+
+
+// this function does the assignment [if available], unless we deal with some peculiar situations that skip the assignment
+// some examples:
+// - pending assignment is excitation on channel n and the user touched a cell that is an excitation on a different channel
+// - pending assignment is listener on channel n and the user touched a cell that is a listener on a different channel
 void assignControl(int touch, int coords[2]) {
 
 	ControlAssignment pendingAssignment;
@@ -2295,11 +2330,8 @@ void assignControl(int touch, int coords[2]) {
 
 		// if we are about to assign an excitation control...
 		if(pendingAssignment.control==control_motion_excite) {
-			pair<int, int> crds = {coords[0], coords[1]};
-			int channel = touchControlManager->findExcitationCoords(crds);
-
 			// ...but the current location is another excitation with different channel, then skip!
-			if(channel>-1 && exChannelIndex!=channel)
+			if( isTouchingDifferentChannel(exChannelIndex, touchControlManager->getExcitationCoords(), coords) )
 				return;
 		}
 		//else if(pendingAssignment.control==control_motion_listener) // same for listener
@@ -2307,84 +2339,159 @@ void assignControl(int touch, int coords[2]) {
 		
 	}
 	
-
+	// if none of the above are happening, we are cool and we can continue with the assignment
 	touchControlManager->assignControl(touch);
 }
 
 
-//TODO define a hook logic and then tackle drag for excitation
-void handleNewTouch2(int currentSlot, int coords[2]) {
-	printf("---------New touch %d\n", currentSlot);
 
-	assignControl(currentSlot, coords);
+void handleNewExciteTouch(int touch, int coords[2]) {
 
+	if( !checkPercussive(exChannelIndex) ) {
+		// if first time this channel excitation is triggered
+		if( touchControlManager->isExcitationPresent(exChannelIndex) == 0 )
+			setFirstContinuousExcitation(exChannelIndex, coords[0], coords[1]); // then add excitation and prepare crossfade
+		else if(touchControlManager->getExcitationTouchBinding(exChannelIndex) == -1)  // or if this channel excitation was put down already BUT it is not being moved by any other touch
+			setNextContinuousExcitation(exChannelIndex, coords[0], coords[1]); // then add next [we'll crossfade there from current] and deletes previous
+		else { //  if we're here it means that a continuous excitation is down from before and it's still bound, hence we were trying to control this channel while another touch is controlling it already
+			touchControlManager->removeControl(touch); // then we lose the assignment
+			return;	
+		}
+	}
+	else {
+		if( touchControlManager->isExcitationPresent(exChannelIndex) != 0 ) {
+			// if we're here it means that a continuous excitation was down somewhere then we switched to a percussive excitation and touched,
+			if( touchControlManager->getExcitationTouchBinding(exChannelIndex) == -1)
+				removeChannelExcitation(exChannelIndex);  // then there is a left over unbound excitation cell that needs to be removed
+			else { //  if we're here it means that a percussive excitation is down from before and it's still bound, hence we were trying to control this channel while another touch is controlling it already
+				touchControlManager->removeControl(touch); // then we lose the assignment!
+				return; 
+			}
+		}
+		setPercussiveExcitation(exChannelIndex, touch, coords[0], coords[1]);
+	}
+	touchControlManager->storeExcitationCoords(exChannelIndex, coords);
+	touchControlManager->bindTouchToExcitation(touch, exChannelIndex);
+}
+
+
+void handleNewTouch2(int touch, int coords[2]) {
+	// printf("---------New touch %d\n", touch);
+
+	bool touchisOnBoundary = checkBoundaries(coords[0], coords[1]); 
+	touchControlManager->setTouchOnBoundary( touch, touchisOnBoundary);
+
+	// check pending assignment and try to assign
+	assignControl(touch, coords);
+
+	// deal with successful assignments
 	ControlAssignment assignment;
-	// first check if touch has control assigmnment
-	if( touchControlManager->getControl(currentSlot, assignment) ) {
+	if( touchControlManager->getControl(touch, assignment) ) {
 
 		if(assignment.controlType == type_motion) {
 
 			if(assignment.control == control_motion_excite) {
+				if(touchisOnBoundary)
+					return; // we will deal with this in drag function
 
-				//if(WE ARE TOUCHING ANOTHER EXCITATION?)
-
-				if( !checkBoundaries(coords[0], coords[1]) ) {
-					
-					if( !checkPercussive(exChannelIndex) ) {
-						// if first time this channel excitation is triggered
-						if( touchControlManager->isExcitationPresent(exChannelIndex) == 0 )
-							setFirstContinuousExcitation(exChannelIndex, coords[0], coords[1]); // add excitation and prepare crossfade
-						else if(touchControlManager->getExcitationTouchBinding(exChannelIndex) == -1)  // or if this channel excitaiton is not being moved by any other touch
-							setNextContinuousExcitation(exChannelIndex, coords[0], coords[1]); // adds next [we'll crossfade there from current] and deletes previous
-					}
-					else {
-						// this check is needed because if a continuous excitation is down and we switch to a percussive excitation, there is a left over excitation cell that needs to be removed
-						if( touchControlManager->isExcitationPresent(exChannelIndex) != 0 )
-							removeChannelExcitation(exChannelIndex);
-						setPercussiveExcitation(exChannelIndex, currentSlot, coords[0], coords[1]);
-					}
-
-					touchControlManager->storeExcitationCoords(exChannelIndex, coords);
-					touchControlManager->bindTouchToExcitation(currentSlot, exChannelIndex);
-					touchControlManager->setTouchOnBoundary(exChannelIndex, false);
-				}
-				else 
-					touchControlManager->setTouchOnBoundary(currentSlot, true);
-
+				handleNewExciteTouch(touch, coords);
+				return;
 			}
 			else if(assignment.control == control_motion_listener) {
+				if(touchisOnBoundary)
+					return; // we will deal with this in drag function
 				//int touchedArea = getAreaIndex(coord[0], coord[1]);
+				return;
 			}
 			else if(assignment.control == control_motion_boundary) {
 				//int touchedArea = getAreaIndex(coord[0], coord[1]);
+				return;
 			}
 		
 		}
 		//else if(assignment.controlType == type_pressure)
+
+		printf("Warning! Unknown control assignment %d - %d on touch %d\n", assignment.controlType, assignment.control, touch);
+		return;
 	}
 
+
+	// otherwise, deal with touches that select excitations or listeners [they get themselves a control assignment] 
+	// to select they have to be in the VICINITY of a cell, not necessarily exactly on it
+	// each excitation or listener is referenced via it's channel
+	// excitation first
+	int touchedExciteChannel = searchForTouchedChannel(touchControlManager->getExcitationCoords(), coords, MIN_DIST);
+	// if any excitation is touched AND the excitation is not percussive [we cannot hook percussive excitations!]
+	if(touchedExciteChannel != -1 && !checkPercussive(touchedExciteChannel)) {
+		ControlAssignment assignment = {type_motion, control_motion_excite, false};
+		touchControlManager->forceControlAssignment(touch, assignment);
+		touchControlManager->bindTouchToExcitation(touch, touchedExciteChannel); 
+		// notice that we don't store a new excitation!
+		return;
+	}
+
+	// then same for listener...
+
 }
 
 
 
-void handleTouchDrag2(int currentSlot, int coords[2]) {
-	printf("---------Touch %d drag, coords %d - %d\n", currentSlot, coords[0], coords[1]);
+void handleTouchDrag2(int touch, int coords[2]) {
+	// printf("---------Touch %d drag, coords %d - %d\n", touch, coords[0], coords[1]);
+	
+	ControlAssignment assignment;
+	if( !touchControlManager->getControl(touch, assignment) )
+		return; // drag does nothing if no assigments
 
+	bool touchWasOnBoundary = touchControlManager->isTouchOnBoundary(touch);
+	bool touchisOnBoundary = checkBoundaries(coords[0], coords[1]); 
+	touchControlManager->setTouchOnBoundary( touch, touchisOnBoundary);
+
+	if(assignment.controlType == type_motion) {
+
+		if(assignment.control == control_motion_excite) {
+			if(touchisOnBoundary)
+				return; // we will deal with this in next drag function
+
+			int boundExciteChannel = touchControlManager->getTouchExcitationBinding(touch);
+
+			// was on boundary and it's not anymore and still unbound! assignment is not complete
+			// we can do the same operations done in handleNewTouch()
+			if(touchWasOnBoundary && boundExciteChannel==-1) {
+				// first check if we are not ending up right on another channel excitation... in which case we bail
+				if( isTouchingDifferentChannel(exChannelIndex, touchControlManager->getExcitationCoords(), coords) )
+					return;
+				handleNewExciteTouch(touch, coords); // then, we can treat this as a new touch
+				return;
+			}
+
+			if(boundExciteChannel == -1) {
+				printf("Warning! Touch %d has control assignment %d - %d but it's bound to any channel excitation\n", touch, assignment.controlType, assignment.control);
+				return;
+			}
+
+			if( !checkPercussive(boundExciteChannel) ) {
+				setNextContinuousExcitation(boundExciteChannel, coords[0], coords[1]); // adds next [we'll crossfade there from current] and deletes previous
+				touchControlManager->storeExcitationCoords(boundExciteChannel, coords);
+				return;
+			}
+		}
+	}
 }
 
 
-void handleTouchRelease2(int currentSlot) {
-	printf("---------Released touch %d\n", currentSlot);
+void handleTouchRelease2(int touch) {
+	printf("---------Released touch %d\n", touch);
 
 	ControlAssignment assignment;
 	// first check if touch has control assigmnment
-	if( touchControlManager->getControl(currentSlot, assignment) ) {
+	if( touchControlManager->getControl(touch, assignment) ) {
 
 		if(assignment.controlType == type_motion) {
 
 			if(assignment.control == control_motion_excite) {
-				
-				int channel = touchControlManager->getTouchExcitationBinding(currentSlot);
+				// control on percussive touches leave a persistent excitation that needs to be removed on release
+				int channel = touchControlManager->getTouchExcitationBinding(touch);
 				if(channel != -1) {
 					
 					if( checkPercussive(channel) ) {
@@ -2392,17 +2499,17 @@ void handleTouchRelease2(int currentSlot) {
 						removeChannelExcitation(channel);
 					}
 
-					touchControlManager->unbindTouchFromExcitation(currentSlot);
+					touchControlManager->unbindTouchFromExcitation(touch);
 				}
 			}
 			//else
 		}
 		//else
 
-		touchControlManager->removeControl(currentSlot);
+		touchControlManager->removeControl(touch);
 	}
 
-	touchControlManager->setTouchOnBoundary(currentSlot, false);
+	touchControlManager->setTouchOnBoundary(touch, false);
 
 }
 

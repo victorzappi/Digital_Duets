@@ -52,15 +52,19 @@ public:
     void scheduleStopAssignmentWait();
     bool getControl(int touch, ControlAssignment &assignment);
     bool removeControl(int touch);
+    void forceControlAssignment(int touch, ControlAssignment assignment);
+
     void storeExcitationCoords(int channel, int coords[]);
     pair<int, int> getExcitationCoords(int channel);
-    int findExcitationCoords(pair<int, int> coords);
+    vector< pair<int, int> > getExcitationCoords();
     bool removeExcitation(int channel);
     int isExcitationPresent(int channel);
+    
     void bindTouchToExcitation(int touch, int channel);
     int getTouchExcitationBinding(int touch);
     int getExcitationTouchBinding(int channel);
     bool unbindTouchFromExcitation(int touch);
+    
     void setTouchOnBoundary(int touch, bool onBoundary);
     bool isTouchOnBoundary(int touch);
 
@@ -140,6 +144,10 @@ inline bool TouchControlManager::removeControl(int touch) {
     return false;
 }
 
+inline void TouchControlManager::forceControlAssignment(int touch, ControlAssignment assignment) {
+    touchControlAssignments[touch] = assignment;
+}
+
 inline void TouchControlManager::storeExcitationCoords(int channel, int coords[]) {
     channelExcitationCoords[channel].first = coords[0];
     channelExcitationCoords[channel].second = coords[1];
@@ -150,13 +158,8 @@ inline pair<int, int> TouchControlManager::getExcitationCoords(int channel) {
     return channelExcitationCoords[channel];
 }
 
-inline int TouchControlManager::findExcitationCoords(pair<int, int> coords) {
-    for(unsigned int i=0; i<channelExcitationCoords.size(); i++) {
-        if(channelExcitationCoords[i].first == coords.first && channelExcitationCoords[i].second == coords.second)
-            return i;
-    }
-
-    return -1; // not found
+inline vector< pair<int, int> > TouchControlManager::getExcitationCoords() {
+    return channelExcitationCoords;
 }
 
 inline bool TouchControlManager::removeExcitation(int channel) {
