@@ -78,9 +78,6 @@ extern bool usePresetCycler;
 bool controlsShouldStop = false;
 
 
-
-double *exChannelModulatedVol = nullptr;
-
 int deltaPos        = 1;
 double deltaVolume = 0.05;
 
@@ -314,7 +311,7 @@ bool lockMouseY = false;
 
 int areaIndex = 0;
 
-int exChannelIndex = 0;
+int channelIndex = 0;
 int exChannels = -1;
 
 float bgain = 1;
@@ -325,6 +322,10 @@ bool showAreas = false;
 
 
 string *excitationNames = nullptr;
+
+double *exChannelVol = nullptr;
+double *exChannelModulatedVol = nullptr;
+
 
 // from main.cpp
 extern bool drumSynthInited;
@@ -452,14 +453,14 @@ void setAreaExcitationVolumeFixed(int area, double v) {
 
 inline void setAreaVolPress(double press, int area) {
 	double vol = expMapping(expMin/* , expMax */, expRange, expNorm, minPress, maxPress, rangePress, press, minVolume, rangeVolume);
-	setAreaExcitationVolumeFixed(area, vol*areaExcitationVol[area]*masterVolume);
+	setAreaExcitationVolumeFixed(area, vol*exChannelVol[area]*masterVolume);
 	/*printf("p: %f\n", press);
 	printf("***vol: %f***  [master volume: %2.f]\n", vol, masterVolume);*/
 }
 
 /*inline*/ void modulateAreaVolPress(double press, int area) {
 	exChannelModulatedVol[area] = expMapping(expMin/* , expMax */, expRange, expNorm, minPress, maxPress, rangePress, press, minVolume, rangeVolume);
-	setAreaExcitationVolume(area, exChannelModulatedVol[area]*areaExcitationVol[area]*masterVolume);
+	setAreaExcitationVolume(area, exChannelModulatedVol[area]*exChannelVol[area]*masterVolume);
 	//printf("***exChannelModulatedVol[%d]: %f***  [master volume: %2.f]\n", area, exChannelModulatedVol[area], masterVolume);
 
 	// stores last pressure, in case we pass it to other area via preset change and hold
@@ -468,18 +469,15 @@ inline void setAreaVolPress(double press, int area) {
 
 inline void setAreaImpPress(double press, int area) {
 
-	double pressoInput = maxPressImp*0.6 + maxPressImp*0.4*press/maxPressImp; // kludge to give sense of somewhat consistent velocity via pressure
+	double pressInput = maxPressImp*0.6 + maxPressImp*0.4*press/maxPressImp; // kludge to give sense of somewhat consistent velocity via pressure
 
-	double vol = expMapping(expMinImp/* , expMaxImp */, expRangeImp, expNormImp, minPressImp, maxPressImp, rangePressImp, pressoInput, minVolumeImp, rangeVolumeImp);
-	setAreaExcitationVolumeFixed(area, vol*areaExcitationVol[area]*masterVolume);
-	//printf("p: %f\n", press);
-/*	printf("***press: %f***\n", press);
-	printf("minPressImp: %f, maxPressImp %f\n", minPressImp, maxPressImp);
-	printf("minVolumeImp: %f, rangeVolumeImp %f\n", minVolumeImp, rangeVolumeImp);*/
-	//printf("pressoInput: %f\n", pressoInput);
-	//printf("***vol: %f***  [master volume: %2.f]\n", vol, masterVolume);
-	//printf("***cnt: %d***\n", cnt++);
-
+	double vol = expMapping(expMinImp/* , expMaxImp */, expRangeImp, expNormImp, minPressImp, maxPressImp, rangePressImp, pressInput, minVolumeImp, rangeVolumeImp);
+	setAreaExcitationVolumeFixed(area, vol*exChannelVol[area]*masterVolume);
+	// printf("***press: %f***\n", press);
+	// printf("minPressImp: %f, maxPressImp %f\n", minPressImp, maxPressImp);
+	// printf("minVolumeImp: %f, rangeVolumeImp %f\n", minVolumeImp, rangeVolumeImp);
+	// printf("pressInput: %f\n", pressInput);
+	// printf("***vol: %f***  [master volume: %2.f]\n", vol, masterVolume);
 }
 
 
@@ -515,7 +513,7 @@ void setExcitationCell(int coordX, int coordY) {
 	//VIC dist float type = hyperDrumSynth->getCellType(coordX, coordY);
 	//VIC dist bool wasBoundary = (type==HyperDrumhead::cell_boundary)||(type==HyperDrumhead::cell_dead);
 
-	if ( hyperDrumSynth->setCellType(coordX, coordY, HyperDrumhead::cell_excitation, exChannelIndex)!=0 ) // leave area as it is [safer?]
+	if ( hyperDrumSynth->setCellType(coordX, coordY, HyperDrumhead::cell_excitation, channelIndex)!=0 ) // leave area as it is [safer?]
 	//hyperDrumSynth->setCell(coordX, coordY, areaIndex, HyperDrumhead::cell_excitation); // changes also area [more prone to human errors?]
 		return;
 
@@ -619,23 +617,21 @@ void resetSimulation() {
 
 
 void setPercussiveExcitation(int exChannel, int touch, int coordX, int coordY) {
-
+	// printf("setPercussiveExcitation %d %d %d %d\n", exChannel, touch, coordX, coordY);
 	setExcitationCell(exChannel, coordX, coordY);
-	setAreaImpPress((double)pressure[touch]/*maxPressImp*/, exChannel);
+	setAreaImpPress((double)pressure[touch], exChannel);
 
 	hyperDrumSynth->triggerAreaExcitation(exChannel);
 }
 
 void setFirstContinuousExcitation(int exChannel, int coordX, int coordY) {
-	//printf("setFirstContinuousExcitation %d %d %d\n", area, coordX, coordY);
+	// printf("setFirstContinuousExcitation %d %d %d\n", exChannel, coordX, coordY);
 	hyperDrumSynth->setFirstMovingExciteCoords(exChannel, coordX, coordY);
 	hyperDrumSynth->triggerAreaExcitation(exChannel);
 }
 
 void setNextContinuousExcitation(int exChannel, int coordX, int coordY) {
-
 	// printf("setNextContinuousExcitation %d %d %d\n", exChannel, coordX, coordY);
-
 	hyperDrumSynth->setNextMovingExciteCoords(exChannel, coordX, coordY);
 }
 
@@ -722,7 +718,7 @@ void setChannelExcitationID(int channel, int id) {
 }
 
 void setChannelExcitationID(int id) {
-	setChannelExcitationID(exChannelIndex/* areaIndex */, id);
+	setChannelExcitationID(channelIndex/* areaIndex */, id);
 
 	/*int currentSlot = triggerArea_touch[areaIndex];
 	triggerArea_touch[areaIndex] = -1; // reset area
@@ -922,9 +918,9 @@ void changeAreaIndex(int index) {
 
 void changeExChannel(int channel) {
 	if(channel<exChannels) {
-		exChannelIndex = channel;
-		int id = hyperDrumSynth->getAreaExcitationId(exChannelIndex);
-		printf("Current excitation channel: %d\n", exChannelIndex);
+		channelIndex = channel;
+		int id = hyperDrumSynth->getAreaExcitationId(channelIndex);
+		printf("Current excitation channel: %d\n", channelIndex);
 		printf("\texcitation index: %d\n", id);
 		printf("\texcitation name: %s\n", excitationNames[id].c_str());
 	}
@@ -2228,9 +2224,8 @@ void setNextControlAssignment(ControlAssignment nextAssignment, bool scheduleSto
 	touchControlManager->getNextControlAssignment(pendingAssignment);
 
 	// check if same assignment is scheduled twice in a row
-	if(pendingAssignment.controlType == nextAssignment.controlType &&
-	   pendingAssignment.control == nextAssignment.control && 
-	   pendingAssignment.negated == nextAssignment.negated ) {
+	if(pendingAssignment.controlType == nextAssignment.controlType && pendingAssignment.control == nextAssignment.control && 
+	   pendingAssignment.negated == nextAssignment.negated && touchControlManager->willAssignmentWaitStop() == scheduleStop) {
 		touchControlManager->stopAssignmentWait();
 		printf("Next touch assignment deleted\n");
 		return;
@@ -2331,11 +2326,13 @@ void assignControl(int touch, int coords[2]) {
 		// if we are about to assign an excitation control...
 		if(pendingAssignment.control==control_motion_excite) {
 			// ...but the current location is another excitation with different channel, then skip!
-			if( isTouchingDifferentChannel(exChannelIndex, touchControlManager->getExcitationCoords(), coords) )
+			if( isTouchingDifferentChannel(channelIndex, touchControlManager->getExcitationCoords(), coords) )
 				return;
 		}
-		//else if(pendingAssignment.control==control_motion_listener) // same for listener
-		//...
+		else if(pendingAssignment.control==control_motion_listener) { // same for listener
+			if( isTouchingDifferentChannel(channelIndex, touchControlManager->getListenerCoords(), coords) )
+				return;
+		}
 		
 	}
 	
@@ -2347,32 +2344,39 @@ void assignControl(int touch, int coords[2]) {
 
 void handleNewExciteTouch(int touch, int coords[2]) {
 
-	if( !checkPercussive(exChannelIndex) ) {
+	if( !checkPercussive(channelIndex) ) {
 		// if first time this channel excitation is triggered
-		if( touchControlManager->isExcitationPresent(exChannelIndex) == 0 )
-			setFirstContinuousExcitation(exChannelIndex, coords[0], coords[1]); // then add excitation and prepare crossfade
-		else if(touchControlManager->getExcitationTouchBinding(exChannelIndex) == -1)  // or if this channel excitation was put down already BUT it is not being moved by any other touch
-			setNextContinuousExcitation(exChannelIndex, coords[0], coords[1]); // then add next [we'll crossfade there from current] and deletes previous
+		if( touchControlManager->isExcitationPresent(channelIndex) == 0 )
+			setFirstContinuousExcitation(channelIndex, coords[0], coords[1]); // then add excitation and prepare crossfade
+		else if(touchControlManager->getExcitationTouchBinding(channelIndex) == -1)  // or if this channel excitation was put down already BUT it is not being moved by any other touch
+			setNextContinuousExcitation(channelIndex, coords[0], coords[1]); // then add next [we'll crossfade there from current] and deletes previous
 		else { //  if we're here it means that a continuous excitation is down from before and it's still bound, hence we were trying to control this channel while another touch is controlling it already
 			touchControlManager->removeControl(touch); // then we lose the assignment
 			return;	
 		}
 	}
 	else {
-		if( touchControlManager->isExcitationPresent(exChannelIndex) != 0 ) {
+		if( touchControlManager->isExcitationPresent(channelIndex) != 0 ) {
 			// if we're here it means that a continuous excitation was down somewhere then we switched to a percussive excitation and touched,
-			if( touchControlManager->getExcitationTouchBinding(exChannelIndex) == -1)
-				removeChannelExcitation(exChannelIndex);  // then there is a left over unbound excitation cell that needs to be removed
+			if( touchControlManager->getExcitationTouchBinding(channelIndex) == -1)
+				removeChannelExcitation(channelIndex);  // then there is a left over unbound excitation cell that needs to be removed
 			else { //  if we're here it means that a percussive excitation is down from before and it's still bound, hence we were trying to control this channel while another touch is controlling it already
 				touchControlManager->removeControl(touch); // then we lose the assignment!
 				return; 
 			}
 		}
-		setPercussiveExcitation(exChannelIndex, touch, coords[0], coords[1]);
+		setPercussiveExcitation(channelIndex, touch, coords[0], coords[1]);
 	}
-	touchControlManager->storeExcitationCoords(exChannelIndex, coords);
-	touchControlManager->bindTouchToExcitation(touch, exChannelIndex);
+	touchControlManager->storeExcitationCoords(channelIndex, coords);
+	touchControlManager->bindTouchToExcitation(touch, channelIndex);
 }
+
+void handleNewListenerTouch(int touch, int coords[2]) {
+	moveAreaListener(channelIndex, coords[0], coords[1]);
+	touchControlManager->storeListenerCoords(channelIndex, coords);
+	touchControlManager->bindTouchToListener(touch, channelIndex);
+}
+
 
 
 void handleNewTouch2(int touch, int coords[2]) {
@@ -2392,15 +2396,16 @@ void handleNewTouch2(int touch, int coords[2]) {
 
 			if(assignment.control == control_motion_excite) {
 				if(touchisOnBoundary)
-					return; // we will deal with this in drag function
+					return; // we will deal with this case in drag function
 
 				handleNewExciteTouch(touch, coords);
 				return;
 			}
 			else if(assignment.control == control_motion_listener) {
 				if(touchisOnBoundary)
-					return; // we will deal with this in drag function
-				//int touchedArea = getAreaIndex(coord[0], coord[1]);
+					return; // we will deal with this case in drag function
+				
+				handleNewListenerTouch(touch, coords);
 				return;
 			}
 			else if(assignment.control == control_motion_boundary) {
@@ -2431,7 +2436,14 @@ void handleNewTouch2(int touch, int coords[2]) {
 	}
 
 	// then same for listener...
-
+	int touchedListenerChannel = searchForTouchedChannel(touchControlManager->getListenerCoords(), coords, MIN_DIST);
+	// if any listener is touched
+	if(touchedListenerChannel != -1) {
+		ControlAssignment assignment = {type_motion, control_motion_listener, false};
+		touchControlManager->forceControlAssignment(touch, assignment);
+		touchControlManager->bindTouchToListener(touch, touchedListenerChannel); 
+		return;
+	}
 }
 
 
@@ -2445,7 +2457,7 @@ void handleTouchDrag2(int touch, int coords[2]) {
 
 	bool touchWasOnBoundary = touchControlManager->isTouchOnBoundary(touch);
 	bool touchisOnBoundary = checkBoundaries(coords[0], coords[1]); 
-	touchControlManager->setTouchOnBoundary( touch, touchisOnBoundary);
+	touchControlManager->setTouchOnBoundary(touch, touchisOnBoundary);
 
 	if(assignment.controlType == type_motion) {
 
@@ -2459,7 +2471,7 @@ void handleTouchDrag2(int touch, int coords[2]) {
 			// we can do the same operations done in handleNewTouch()
 			if(touchWasOnBoundary && boundExciteChannel==-1) {
 				// first check if we are not ending up right on another channel excitation... in which case we bail
-				if( isTouchingDifferentChannel(exChannelIndex, touchControlManager->getExcitationCoords(), coords) )
+				if( isTouchingDifferentChannel(channelIndex, touchControlManager->getExcitationCoords(), coords) )
 					return;
 				handleNewExciteTouch(touch, coords); // then, we can treat this as a new touch
 				return;
@@ -2475,13 +2487,36 @@ void handleTouchDrag2(int touch, int coords[2]) {
 				touchControlManager->storeExcitationCoords(boundExciteChannel, coords);
 				return;
 			}
+		} else if(assignment.control == control_motion_listener) {
+			if(touchisOnBoundary)
+				return; // we will deal with this in next drag function
+
+			int boundListenerChannel = touchControlManager->getTouchListenerBinding(touch);
+
+			// was on boundary and it's not anymore and still unbound! assignment is not complete
+			// we can do the same operations done in handleNewTouch()
+			if(touchWasOnBoundary && boundListenerChannel==-1) {
+				// first check if we are not ending up right on another channel listener... in which case we bail
+				if( isTouchingDifferentChannel(channelIndex, touchControlManager->getListenerCoords(), coords) )
+					return;
+				handleNewListenerTouch(touch, coords); // then, we can treat this as a new touch
+				return;
+			}
+
+			if(boundListenerChannel == -1) {
+				printf("Warning! Touch %d has control assignment %d - %d but it's bound to any channel excitation\n", touch, assignment.controlType, assignment.control);
+				return;
+			}
+
+			moveAreaListener(boundListenerChannel, coords[0], coords[1]);
+			touchControlManager->storeListenerCoords(boundListenerChannel, coords);
 		}
 	}
 }
 
 
 void handleTouchRelease2(int touch) {
-	printf("---------Released touch %d\n", touch);
+	// printf("---------Released touch %d\n", touch);
 
 	ControlAssignment assignment;
 	// first check if touch has control assigmnment
@@ -2491,18 +2526,20 @@ void handleTouchRelease2(int touch) {
 
 			if(assignment.control == control_motion_excite) {
 				// control on percussive touches leave a persistent excitation that needs to be removed on release
-				int channel = touchControlManager->getTouchExcitationBinding(touch);
-				if(channel != -1) {
-					
-					if( checkPercussive(channel) ) {
-						hyperDrumSynth->dampAreaExcitation(channel);
-						removeChannelExcitation(channel);
+				int boundChannel = touchControlManager->getTouchExcitationBinding(touch);
+				if(boundChannel != -1) {
+					if( checkPercussive(boundChannel) ) {
+						hyperDrumSynth->dampAreaExcitation(boundChannel);
+						removeChannelExcitation(boundChannel);
 					}
-
 					touchControlManager->unbindTouchFromExcitation(touch);
 				}
 			}
-			//else
+			else if(assignment.control == control_motion_listener) {
+				int boundChannel = touchControlManager->getTouchListenerBinding(touch);
+				if(boundChannel != -1)
+					touchControlManager->unbindTouchFromListener(touch);
+			}
 		}
 		//else
 
@@ -3349,9 +3386,11 @@ int initControlThreads() {
 	triggerChannel_touches = new list<int>[exChannels];
 	triggerChannel_touch_coords = new list<pair<int, int>>*[exChannels];
 	exChannelModulatedVol = new double[exChannels];
+	exChannelVol = new double[exChannels];
 	for(int i=0; i<exChannels; i++) {
 		exChannelExciteID[i] = drumExId;
 		exChannelModulatedVol[i] = 1;
+		exChannelVol[i] = 1;
 	}
 
 	// boundary distances handling
@@ -3394,6 +3433,13 @@ int initControlThreads() {
 	touchControlManager = new TouchControlManager(touchSlots, excitationChannels);
 	ControlAssignment initialAssignment = {type_motion, control_motion_excite, false};
 	touchControlManager->setNextControlAssignment(initialAssignment);
+	for(int i=0; i<exChannels; i++) {
+		int coords[2];
+		hyperDrumSynth->getAreaListenerPosition(i, coords[0], coords[1]);
+		touchControlManager->storeListenerCoords(i, coords);
+
+		printf("LISTENER %d COORDS %d %d\n", i, coords[0], coords[1]);
+	}
 
 
 
@@ -3717,6 +3763,8 @@ void cleanUpControlLoop() {
 	}
 	if(exChannelModulatedVol != nullptr)
 		delete[] exChannelModulatedVol;
+	if(exChannelVol != nullptr)
+		delete[] exChannelVol;
 
 	delete[] touchOn;
 	delete[] touchPos[0];

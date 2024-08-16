@@ -139,14 +139,14 @@ inline int HyperDrumSynth::setListenerPosition(int x, int y) {
 inline int HyperDrumSynth::setAreaListenerPosition(int channel, int x, int y) {
 	return hyperDrumhead.setAreaListenerPosition(0, channel, x, y); //VIC BE CAREFUL, here area 0 is hard wired for now 
 }
-inline int HyperDrumSynth::initAreaListenerPosition(int index, int x, int y) {
-	return hyperDrumhead.initAreaListenerPosition(index, 0, x, y);
+inline int HyperDrumSynth::initAreaListenerPosition(int channel, int x, int y) {
+	return hyperDrumhead.initAreaListenerPosition(0, channel, x, y); //VIC BE CAREFUL, here area 0 is hard wired for now 
 }
 inline void HyperDrumSynth::getListenerPosition(int &x, int &y) {
 	hyperDrumhead.getListenerPosition(x, y);
 }
 inline void HyperDrumSynth::getAreaListenerPosition(int index, int &x, int &y) {
-	hyperDrumhead.getAreaListenerPosition(index, 0, x, y);
+	hyperDrumhead.getAreaListenerPosition(0, index, x, y); //VIC BE CAREFUL, here area 0 is hard wired for now 
 }
 inline void HyperDrumSynth::hideListener() {
 	hyperDrumhead.hideListener();
@@ -160,11 +160,11 @@ inline int HyperDrumSynth::shiftListenerH(int delta) {
 inline int HyperDrumSynth::shiftListenerV(int delta) {
 	return hyperDrumhead.shiftListenerV(delta);
 }
-inline int HyperDrumSynth::shiftAreaListenerH(int index, int delta) {
-	return hyperDrumhead.shiftAreaListenerH(index, 0, delta);
+inline int HyperDrumSynth::shiftAreaListenerH(int channel, int delta) {
+	return hyperDrumhead.shiftAreaListenerH(0, channel, delta); //VIC BE CAREFUL, here area 0 is hard wired for now 
 }
-inline int HyperDrumSynth::shiftAreaListenerV(int index, int delta) {
-	return hyperDrumhead.shiftAreaListenerV(index, 0, delta);
+inline int HyperDrumSynth::shiftAreaListenerV(int channel, int delta) {
+	return hyperDrumhead.shiftAreaListenerV(0, channel, delta);  //VIC BE CAREFUL, here area 0 is hard wired for now 
 }
 inline void HyperDrumSynth::setAreaExcitationVolume(int index, double v) {
 	channelExcitation[index]->setVolume(v);

@@ -29,12 +29,13 @@ class TouchControlManager {
 public:
     TouchControlManager(int maxTouches, unsigned int exciteChns) : maxNumOfTouches(maxTouches), excitationChannels(exciteChns), 
     touchControlAssignments(maxNumOfTouches), channelExcitationPresent(excitationChannels), channelExcitationCoords(excitationChannels), touch_channelExcitation(excitationChannels), 
-    channelExcitation_touch(maxNumOfTouches), touchOnBoundary(maxTouches) {
+    channelExcitation_touch(maxNumOfTouches), channelListenerCoords(excitationChannels), touch_channelListener(excitationChannels), channelListener_touch(maxTouches), touchOnBoundary(maxTouches) {
         resetControlAssignment(nextControlAssignment);
 
         for (int i=0; i<maxTouches; i++) {
             resetControlAssignment(touchControlAssignments[i]);
             channelExcitation_touch[i] = -1;
+            channelListener_touch[i] = -1;
             touchOnBoundary[i] = false;
         }
 
@@ -43,6 +44,9 @@ public:
             channelExcitationCoords[i].first = -1;
             channelExcitationCoords[i].second = -1;
             touch_channelExcitation[i] = -1;
+            channelListenerCoords[i].first = -1;
+            channelListenerCoords[i].second = -1;
+            touch_channelListener[i] = -1;
         }
     }    
     void setNextControlAssignment(ControlAssignment nextAssignment, bool scheduleStop=true);
@@ -50,6 +54,7 @@ public:
     bool assignControl(int touch);
     void stopAssignmentWait();
     void scheduleStopAssignmentWait();
+    bool willAssignmentWaitStop();
     bool getControl(int touch, ControlAssignment &assignment);
     bool removeControl(int touch);
     void forceControlAssignment(int touch, ControlAssignment assignment);
@@ -64,6 +69,15 @@ public:
     int getTouchExcitationBinding(int touch);
     int getExcitationTouchBinding(int channel);
     bool unbindTouchFromExcitation(int touch);
+
+    void storeListenerCoords(int channel, int coords[]);
+    pair<int, int> getListenerCoords(int channel);
+    vector< pair<int, int> > getListenerCoords();
+
+    void bindTouchToListener(int touch, int channel);
+    int getTouchListenerBinding(int touch);
+    int getListenerTouchBinding(int channel);
+    bool unbindTouchFromListener(int touch);
     
     void setTouchOnBoundary(int touch, bool onBoundary);
     bool isTouchOnBoundary(int touch);
@@ -79,10 +93,15 @@ private:
     
     ControlAssignment nextControlAssignment;
     vector<ControlAssignment> touchControlAssignments;
+
     vector<bool> channelExcitationPresent;
     vector< pair<int, int> > channelExcitationCoords;   
     vector<int> touch_channelExcitation;
     vector<int> channelExcitation_touch;
+
+    vector< pair<int, int> > channelListenerCoords;   
+    vector<int> touch_channelListener;
+    vector<int> channelListener_touch;
 
     vector<bool> touchOnBoundary;
 };
@@ -124,6 +143,10 @@ inline void TouchControlManager::stopAssignmentWait() {
 
 inline void TouchControlManager::scheduleStopAssignmentWait() {
     endWaitAfterAssignment = true;
+}
+
+inline bool TouchControlManager::willAssignmentWaitStop() {
+    return endWaitAfterAssignment;
 }
 
 inline bool TouchControlManager::getControl(int touch, ControlAssignment &assignment) {
@@ -200,6 +223,42 @@ inline bool TouchControlManager::unbindTouchFromExcitation(int touch) {
     return true;
 }
 
+inline void TouchControlManager::storeListenerCoords(int channel, int coords[]) {
+    channelListenerCoords[channel].first = coords[0];
+    channelListenerCoords[channel].second = coords[1];
+}
+
+inline pair<int, int> TouchControlManager::getListenerCoords(int channel) {
+    return channelListenerCoords[channel];
+}
+
+inline vector< pair<int, int> > TouchControlManager::getListenerCoords() {
+    return channelListenerCoords;
+}
+
+inline void TouchControlManager::bindTouchToListener(int touch, int channel) {
+    channelListener_touch[touch] = channel;
+    touch_channelListener[channel] = touch;
+}
+
+inline int TouchControlManager::getTouchListenerBinding(int touch) {
+    return channelListener_touch[touch];
+}
+
+inline int TouchControlManager::getListenerTouchBinding(int channel) {
+    return touch_channelListener[channel];
+}
+
+inline bool TouchControlManager::unbindTouchFromListener(int touch) {
+    if(channelListener_touch[touch] == -1)
+        return false;
+
+    int channel = channelListener_touch[touch];
+    touch_channelListener[channel] = -1;
+    channelListener_touch[touch] = -1;
+
+    return true;
+}
 
 inline void TouchControlManager::setTouchOnBoundary(int touch, bool onBoundary) {
     touchOnBoundary[touch] = onBoundary;

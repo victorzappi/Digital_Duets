@@ -333,8 +333,8 @@ int initDrumSynth(float ***domainPixels) {
 		hyperDrumSynth->setAreaExcitationRelease(i, areaExRelease[i]);
 	}
 
-	areaListenerCoord[0][0] = 5+domainSize[0]/2;
-	areaListenerCoord[0][1] = domainSize[1]/2;
+	areaListenerCoord[0][0] = listenerCoord[0];
+	areaListenerCoord[0][1] = listenerCoord[1];
 
 	hyperDrumSynth->initAreaListenerPosition(0, areaListenerCoord[0][0], areaListenerCoord[0][1]);
 	return 0;

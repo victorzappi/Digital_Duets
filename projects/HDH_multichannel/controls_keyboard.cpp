@@ -184,11 +184,9 @@ void key_callback(GLFWwindow *, int key, int scancode, int action, int mods) {
 				case GLFW_KEY_S:
 					if(leftCtrlIsPressed || rightCtrlIsPressed)
 						savePreset();
-					else if(!altIsPressed)
-						changeFirstPreFingerMotion(motion_ex, shiftIsPressed);
 					else {
-						changePreFingersMotionDynamic(motion_ex, shiftIsPressed);
-						endPreFingersMotionDynamic(); // otherwise all successive touches will be pre fingers
+						nextAssignment = {type_motion, control_motion_listener, shiftIsPressed};
+				 		setNextControlAssignment(nextAssignment, !altIsPressed); // alt does not schedule stop of assignment
 					}
 					break;
 				case GLFW_KEY_D:

@@ -304,10 +304,8 @@ int HyperDrumhead::init(string shaderLocation, int *domainSize, int audioRate, i
 double **HyperDrumhead::getFrameBuffer(int numOfSamples, double **input) {
 
 	// move excitations to new coordinates
-	for(int i=0; i<in_channels; i++) { //@VIC
-		//if(movingExcitation[i])
-			moveExcitation(i);
-	}
+	for(int i=0; i<in_channels; i++)
+		moveExcitation(i);
 
 	// handle domain changes
 	updatePixelDrawer();
@@ -328,7 +326,7 @@ double **HyperDrumhead::getFrameBuffer(int numOfSamples, double **input) {
 	getSamples(numOfSamples);
 
 	// if an excitation was scheduled for removal via a touch release...
-	for(int i=0; i<in_channels; i++) { //@VIC
+	for(int i=0; i<in_channels; i++) {
 		if(resetMovingExcite[i])
 			deleteMovingExcite(i); // ...call this to check if it is time to remove it!
 	}
@@ -1224,7 +1222,6 @@ int HyperDrumhead::initAreaListenerFragCrossfade(int index, int chn, int x, int 
 }
 
 
-//VIC ulsess now
 int HyperDrumhead::computeAreaListenerPos(int index, int chn, int x, int y) {
 	int coords[2] = {x, y};
 	if(fromDomainToTexture(coords) != 0)
@@ -1427,8 +1424,6 @@ void HyperDrumhead::getSamples(int numSamples) {
 			}
 			glUniform1f(crossfade_loc, crossfade);
 			doCrossfade    = false;
-			/*for(int i=0; i<numOfAreas; i++)
-				updateAreaListener[i] = false;*/
 		}
 
 		if(doExciteCrossfade) {
@@ -1505,8 +1500,6 @@ void HyperDrumhead::getSamplesReadTime(int numSamples, int &readTime) {
 			}
 			glUniform1f(crossfade_loc, crossfade);
 			doCrossfade    = false;
-			/*for(int i=0; i<numOfAreas; i++)
-				updateAreaListener[i] = false;*/
 		}
 
 		if(doExciteCrossfade) {

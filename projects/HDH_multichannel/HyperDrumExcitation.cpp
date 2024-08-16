@@ -204,6 +204,7 @@ double **HyperDrumExcitation::getFrameBuffer(int numOfSamples, double **input) {
 
 	if(currentExcitationId < numOfComponents-numOfInputs)
 		tmpBuf = audioModulesOut[currentExcitationId]->getFrameBuffer(numOfSamples)[0];
+		
 	else
 		tmpBuf = audioModulesInOut[currentExcitationId-numOfWaveforms-numOfFiles]->getFrameBuffer(numOfSamples, input)[0];
 
