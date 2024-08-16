@@ -3437,8 +3437,6 @@ int initControlThreads() {
 		int coords[2];
 		hyperDrumSynth->getAreaListenerPosition(i, coords[0], coords[1]);
 		touchControlManager->storeListenerCoords(i, coords);
-
-		printf("LISTENER %d COORDS %d %d\n", i, coords[0], coords[1]);
 	}
 
 

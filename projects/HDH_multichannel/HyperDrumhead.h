@@ -28,8 +28,11 @@ public:
 
 	HyperDrumhead();
 	~HyperDrumhead();
+	int init(string shaderLocation, int *domainSize, int *excitationCoord, int *excitationDimensions,
+			         float ***domain, int audioRate, int rateMul, int periodSize, float mag=1, int *listCoord=NULL,
+					 unsigned short inChannels=1, unsigned short inChnOffset=0, unsigned short outChannels=1, unsigned short outChnOffset=0);
 	int init(string shaderLocation, int *domainSize, int audioRate, int rateMul, unsigned int periodSize, float mag=1, int *listCoord=NULL,
-			 unsigned short inChannels=1, unsigned short outChannels=1, unsigned short outChnOffset=0);
+			 unsigned short inChannels=1, unsigned short inChnOffset=0, unsigned short outChannels=1, unsigned short outChnOffset=0);
 	double **getFrameBuffer(int numOfSamples, double **areaInput);
 	GLFWwindow *getWindow(int *size); //VIC drawer
 	void setAreaDampingFactor(int index, float dampFact);

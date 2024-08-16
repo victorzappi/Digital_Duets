@@ -309,7 +309,7 @@ int initDrumSynth(float ***domainPixels) {
 	hyperDrumSynth->init(shaderLocation, domainSize, rate, rate_mul, period_size, excitationLevel, magnifier, exciteFileFolder, listenerCoord, 
 						 exInChannels, exInChnOffset, hdhInChannels, hdhdOutChannels, hdhOutChnOffset);
 	if(hyperDrumSynth->setDomain(excitationCoord, excitationDim, domainPixels, builtinPreset) != 0)
-	 return 1;
+		return 1;
 
 	hyperDrumSynth->hideListener();
 
@@ -323,8 +323,8 @@ int initDrumSynth(float ***domainPixels) {
 		areaProp[i] = areaProp[0];
 		areaExLowPassFreq[i]    = areaExLowPassFreq[0];
 		areaExRelease[i]        = areaExRelease[0];
-		for(int k=0; k<hdhdOutChannels; k++)
-			hyperDrumSynth->hideAreaListener(i, k);
+		// for(int k=0; k<hdhdOutChannels; k++)
+		// 	hyperDrumSynth->hideAreaListener(i, k);
 		hyperDrumSynth->setAreaExcitationVolume(i, areaExcitationVol[i]);
 		hyperDrumSynth->setAreaDampingFactor(i, areaDamp[i]);
 		hyperDrumSynth->setAreaPropagationFactor(i, areaProp[i]);
@@ -333,10 +333,10 @@ int initDrumSynth(float ***domainPixels) {
 		hyperDrumSynth->setAreaExcitationRelease(i, areaExRelease[i]);
 	}
 
+	// these need to be initialized manually so that control.cpp knows where the first listener is located
 	areaListenerCoord[0][0] = listenerCoord[0];
 	areaListenerCoord[0][1] = listenerCoord[1];
 
-	hyperDrumSynth->initAreaListenerPosition(0, areaListenerCoord[0][0], areaListenerCoord[0][1]);
 	return 0;
 }
 

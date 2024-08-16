@@ -39,8 +39,7 @@ void HyperDrumSynth::init(string shaderLocation, int *domainSize, int audioRate,
 	this->domainSize[0] = domainSize[0];
 	this->domainSize[1] = domainSize[1];
 
-	simulationRate  = hyperDrumhead.init(shaderLocation, domainSize, audioRate, rateMul, period_size, magnifier, listCoord, hdhInChannels, hdhOutChannels, hdhOutChnOffset);
-
+	simulationRate  = hyperDrumhead.init(shaderLocation, domainSize, audioRate, rateMul, period_size, magnifier, listCoord, hdhInChannels, 0, hdhOutChannels, hdhOutChnOffset);
 
 	initExcitation(rateMul, exLevel, exciteFolder, exInChannels, exInChnOffset);
 }

@@ -178,25 +178,6 @@ int FDTD::setDomain(int *excitationCoord, int *excitationDimensions, float ***do
 	return 0;
 }
 
-/*float *FDTD::getBufferFloat(int numSamples, double *inputBuffer) {
-	// handle domain changes
-	updatePixelDrawer();
-
-	// control parameters modified from the outside
-	updateUniforms();
-
-	// calculate samples on GPU
-	computeSamples(numSamples, inputBuffer);
-
-	// render
-	renderWindow();
-
-	// get samples from GPU
-	getSamples(numSamples);
-
-	return outputBuffer;
-}*/
-
 double **FDTD::getFrameBuffer(int numOfSamples, double **input) {
 	// handle domain changes
 	updatePixelDrawer();

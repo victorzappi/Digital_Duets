@@ -210,12 +210,23 @@ HyperDrumhead::~HyperDrumhead() {
 		delete hyperPixelDrawer;
 
 }
+int HyperDrumhead::init(string shaderLocation, int *domainSize, int *excitationCoord, int *excitationDimensions,
+			         float ***domain, int audioRate, int rateMul, int periodSize, float mag, int *listCoord,
+					 unsigned short inChannels, unsigned short inChnOffset, unsigned short outChannels, unsigned short outChnOffset) {
+	inChnOffset = 0;
+	int retval = init(shaderLocation, domainSize, audioRate, rateMul, periodSize, mag, listCoord, inChannels, inChnOffset, outChannels, outChnOffset);
+	if(retval!=0)
+		return retval;
+
+	return FDTD::setDomain(excitationCoord, excitationDimensions, domain);
+}
 
 int HyperDrumhead::init(string shaderLocation, int *domainSize, int audioRate, int rateMul, unsigned int periodSize, float mag, int *listCoord,
-		       unsigned short inChannels, unsigned short outChannels, unsigned short outChnOffset) { 
+		       unsigned short inChannels, unsigned short inChnOffset, unsigned short outChannels, unsigned short outChnOffset) { 
+	inChnOffset = 0;
 
 	int retval = FDTD::init(shaderLocation, domainSize, audioRate, rateMul, periodSize, mag, listCoord,
-		       inChannels, 0, outChannels,  outChnOffset); // always 0 in channel offset
+		       inChannels, inChnOffset, outChannels,  outChnOffset); // always 0 in channel offset
 	
 		// channel excitations
 		areaExciteInput_loc = new GLint[in_channels];
@@ -297,6 +308,32 @@ int HyperDrumhead::init(string shaderLocation, int *domainSize, int audioRate, i
 	nextAreaListenerFragCoord     = areaListenerFragCoord;
 	nextAreaListenerFragCoord_loc = areaListenerFragCoord_loc;
 
+
+	// init the position of the first listener, which will automatically init the deck machanism for the other ones
+	// same as initAreaListenerPosition() but no init check, otherwise must be done after setDomain() 
+	if(listCoord != NULL)
+		initAreaListenerFragCrossfade(0, 0, listCoord[0], listCoord[1]);
+	else
+		initAreaListenerFragCrossfade(0, 0, -numOfPML-numOfOuterCellLayers-2, -numOfPML-numOfOuterCellLayers-2);
+	updateAreaListener[0][0] = true;
+	areaListInited = true;
+
+	for(int i=0; i<numOfAreas; i++) {
+		// then hide all other listeners [same as hideAreaListeners() but no init check, otherwise must be done after setDomain()]
+		for(int j=0; j<outChannels; j++) {
+			if(i==0 && j==0)
+				continue;
+
+			areaListenerCoord[i][j][0] = -numOfPML-numOfOuterCellLayers-2;
+			areaListenerCoord[i][j][1] = -numOfPML-numOfOuterCellLayers-2;
+
+			computeHiddenAreaListenerFragCrossfade(i, j);
+			//----------------------------------------------------------------
+
+			updateAreaListener[i][j] = true;
+		}
+	}
+
 	return retval;
 }
 
@@ -343,14 +380,12 @@ int HyperDrumhead::setAreaListenerPosition(int index, int chn , int x, int y) {
 	if(!inited)
 		return -1;
 
-	//if(computeAreaListenerFrag(index, x, y) != 0) // returns 1 if outside of allowed borders [allowed borders are filter specific!]
-	if(computeAreaListenerFragCrossfade(index, chn, x, y) != 0)
+	if(computeAreaListenerFragCrossfade(index, chn, x, y) != 0) // returns 1 if outside of allowed borders [allowed borders are filter specific!]
 		return 1;
 
 	updateAreaListener[index][chn] = true;
 	if(areaListInited)
-		updateAllAreaListeners= true;
-
+		updateAllAreaListeners = true;
 
 	return 0;
 }
@@ -360,9 +395,7 @@ int HyperDrumhead::initAreaListenerPosition(int index, int chn, int x, int y) {
 	if(!inited)
 		return -1;
 
-	//if(computeAreaListenerFrag(index, x, y) != 0) // returns 1 if outside of allowed borders [allowed borders are filter specific!]
-	if(initAreaListenerFragCrossfade(index, chn, x, y) != 0)
-		return 1;
+	initAreaListenerFragCrossfade(index, chn, x, y);
 
 	updateAreaListener[index][chn] = true;
 	areaListInited = true;
@@ -399,7 +432,7 @@ int HyperDrumhead::shiftAreaListenerH(int index, int chn, int delta){
 
 
 int HyperDrumhead::hideListener() {
-	// the filter must be initialized to set up a the listener now! Otherwise, it will be done in init
+	// the filter must be initialized to set up the listener! Otherwise, it will be done in init
 	if(!inited)
 		return -1;
 
@@ -418,7 +451,7 @@ int HyperDrumhead::hideListener() {
 }
 
 int HyperDrumhead::hideAreaListener(int index, int chn) {
-	// the filter must be initialized to set up a the listener now! Otherwise, it will be done in init
+	// the filter must be initialized to set up the listener! Otherwise, it will be done in init
 	if(!inited)
 		return -1;
 
@@ -439,7 +472,7 @@ int HyperDrumhead::hideAreaListener(int index, int chn) {
 int HyperDrumhead::clearDomain() {
 	if(!inited)
 		return -1;
-	//pixelDrawer->clear();
+	
 	hyperPixelDrawer->clear();
 	updatePixels = true;
 
