@@ -48,7 +48,7 @@ public:
 	void getListenerPosition(int &x, int &y);
 	void getAreaListenerPosition(int index, int &x, int &y);
 	void hideListener();
-	void hideAreaListener(int index, int chn=0);
+	void hideAreaListener(int chn);
 	int shiftListenerH(int delta);
 	int shiftListenerV(int delta);
 	int shiftAreaListenerH(int index, int delta);
@@ -151,8 +151,8 @@ inline void HyperDrumSynth::getAreaListenerPosition(int index, int &x, int &y) {
 inline void HyperDrumSynth::hideListener() {
 	hyperDrumhead.hideListener();
 }
-inline void HyperDrumSynth::hideAreaListener(int index, int chn) {
-	hyperDrumhead.hideAreaListener(index, chn);
+inline void HyperDrumSynth::hideAreaListener(int chn) {
+	hyperDrumhead.hideAreaListener(0, chn);  //VIC BE CAREFUL, here area 0 is hard wired for now 
 }
 inline int HyperDrumSynth::shiftListenerH(int delta) {
 	return hyperDrumhead.shiftListenerH(delta);

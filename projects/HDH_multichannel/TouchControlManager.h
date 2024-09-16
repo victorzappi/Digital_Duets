@@ -73,6 +73,7 @@ public:
     void storeListenerCoords(int channel, int coords[]);
     pair<int, int> getListenerCoords(int channel);
     vector< pair<int, int> > getListenerCoords();
+    void hideListener(int channel);
 
     void bindTouchToListener(int touch, int channel);
     int getTouchListenerBinding(int touch);
@@ -188,6 +189,11 @@ inline vector< pair<int, int> > TouchControlManager::getExcitationCoords() {
 inline bool TouchControlManager::removeExcitation(int channel) {
     if(!channelExcitationPresent[channel])
         return false;
+
+    // remove any outstanding biding with touch
+    int boundTouch = touch_channelExcitation[channel];
+    if(boundTouch != -1)
+        unbindTouchFromExcitation(boundTouch);
     
     channelExcitationCoords[channel].first = -1;
     channelExcitationCoords[channel].second = -1;
@@ -235,6 +241,12 @@ inline pair<int, int> TouchControlManager::getListenerCoords(int channel) {
 inline vector< pair<int, int> > TouchControlManager::getListenerCoords() {
     return channelListenerCoords;
 }
+
+inline void TouchControlManager::hideListener(int channel) {
+    int coords[2] = {-2, -2};
+    storeListenerCoords(channel, coords);
+}
+
 
 inline void TouchControlManager::bindTouchToListener(int touch, int channel) {
     channelListener_touch[touch] = channel;

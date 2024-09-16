@@ -53,7 +53,7 @@ bool useMidi = false;
 // 1280x960
 // {256-2 x 192-2} x 5 = 48260 <---
 int domainSize[2] = {254, 190};
-float magnifier   =	4;
+float magnifier   =	6;
 int rate_mul      = 1;
 bool fullscreen   = false;
 int monitorIndex  = 0;

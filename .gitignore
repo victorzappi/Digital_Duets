@@ -46,7 +46,7 @@ bin/
 .DS_Store
 
 # OpenGL log files
-gl.log
+**/gl.log
 
 # Temporary local projects
 _projects/
