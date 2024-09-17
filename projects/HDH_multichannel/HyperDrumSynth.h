@@ -145,8 +145,8 @@ inline int HyperDrumSynth::initAreaListenerPosition(int channel, int x, int y) {
 inline void HyperDrumSynth::getListenerPosition(int &x, int &y) {
 	hyperDrumhead.getListenerPosition(x, y);
 }
-inline void HyperDrumSynth::getAreaListenerPosition(int index, int &x, int &y) {
-	hyperDrumhead.getAreaListenerPosition(0, index, x, y); //VIC BE CAREFUL, here area 0 is hard wired for now 
+inline void HyperDrumSynth::getAreaListenerPosition(int channel, int &x, int &y) {
+	hyperDrumhead.getAreaListenerPosition(0, channel, x, y); //VIC BE CAREFUL, here area 0 is hard wired for now 
 }
 inline void HyperDrumSynth::hideListener() {
 	hyperDrumhead.hideListener();
@@ -166,32 +166,32 @@ inline int HyperDrumSynth::shiftAreaListenerH(int channel, int delta) {
 inline int HyperDrumSynth::shiftAreaListenerV(int channel, int delta) {
 	return hyperDrumhead.shiftAreaListenerV(0, channel, delta);  //VIC BE CAREFUL, here area 0 is hard wired for now 
 }
-inline void HyperDrumSynth::setAreaExcitationVolume(int index, double v) {
-	channelExcitation[index]->setVolume(v);
+inline void HyperDrumSynth::setAreaExcitationVolume(int channel, double v) {
+	channelExcitation[channel]->setVolume(v);
 }
-inline void HyperDrumSynth::setAreaExcitationVolumeFixed(int index, double v) {
-	channelExcitation[index]->setVolumeFixed(v);
+inline void HyperDrumSynth::setAreaExcitationVolumeFixed(int channel, double v) {
+	channelExcitation[channel]->setVolumeFixed(v);
 }
-inline void HyperDrumSynth::setAreaExcitationID(int index, int id) {
-	channelExcitation[index]->setExcitationID(id);
+inline void HyperDrumSynth::setAreaExcitationID(int channel, int id) {
+	channelExcitation[channel]->setExcitationID(id);
 }
-inline bool HyperDrumSynth::getAreaExcitationIsPercussive(int index) {
-	return channelExcitation[index]->getIsPercussive();
+inline bool HyperDrumSynth::getAreaExcitationIsPercussive(int channel) {
+	return channelExcitation[channel]->getIsPercussive();
 }
-inline bool HyperDrumSynth::getAreaExcitationIsPercussive(int index, int id) {
-	return channelExcitation[index]->getIsPercussive(id);
+inline bool HyperDrumSynth::getAreaExcitationIsPercussive(int channel, int id) {
+	return channelExcitation[channel]->getIsPercussive(id);
 }
-inline int HyperDrumSynth::getAreaExcitationId(int index) {
-	return channelExcitation[index]->getExcitationId();
+inline int HyperDrumSynth::getAreaExcitationId(int channel) {
+	return channelExcitation[channel]->getExcitationId();
 }
-inline void HyperDrumSynth::setAreaExLowPassFreq(int index, float freq) {
-	channelExcitation[index]->setLowpassFreq(freq);
+inline void HyperDrumSynth::setAreaExLowPassFreq(int channel, float freq) {
+	channelExcitation[channel]->setLowpassFreq(freq);
 }
-inline void HyperDrumSynth::triggerAreaExcitation(int index) {
-	channelExcitation[index]->excite();
+inline void HyperDrumSynth::triggerAreaExcitation(int channel) {
+	channelExcitation[channel]->excite();
 }
-inline void HyperDrumSynth::dampAreaExcitation(int index) {
-	channelExcitation[index]->damp();
+inline void HyperDrumSynth::dampAreaExcitation(int channel) {
+	channelExcitation[channel]->damp();
 }
 inline GLFWwindow *HyperDrumSynth::getWindow(int *size) {
 	return hyperDrumhead.getWindow(size);

@@ -100,7 +100,7 @@ double deltaLowPassFreq[AREA_NUM];
 
 extern float areaDamp[AREA_NUM];
 double areaDeltaDamp[AREA_NUM];
-const float maxDamp = 0.05;
+const float maxDamp = 0.1;//0.05;
 const float minDamp = 0;
 
 extern float areaProp[AREA_NUM];
@@ -2277,6 +2277,9 @@ inline int searchForTouchedChannel(vector< pair<int, int> > tagetCoordVec, int c
 	
 	
 	for(unsigned int chn=0; chn<tagetCoordVec.size(); chn++) {
+		// we skip checks on locations outside the domain
+		if(tagetCoordVec[chn].first<0 || tagetCoordVec[chn].second<0)
+			continue;
 		// squared dist
 		int dist = abs((tagetCoordVec[chn].first-candidateCoords[0])*(tagetCoordVec[chn].first-candidateCoords[0]) + (tagetCoordVec[chn].second-candidateCoords[1])*(tagetCoordVec[chn].second-candidateCoords[1]) );
 		if(dist<min_dist)
@@ -2363,9 +2366,14 @@ bool hasSelectedChannelListener(int coords[2], int& touchedListenerChannel) {
 	return true;
 }
 
+void moveChannelListener(int channel, int coords[2]) {
+	if(hyperDrumSynth->setAreaListenerPosition(channel, coords[0], coords[1]) == 0)
+		touchControlManager->storeListenerCoords(channel, coords);
+}
 
 
-void handleNewExciteTouch(int touch, int coords[2], bool assignmentNegated=false) {
+
+void handleNewExciteTouch(int touch, int coords[2], bool assignmentNegated) {
 	if(assignmentNegated) {
 		removeChannelExcitation(channelIndex);
 		touchControlManager->removeControl(touch);
@@ -2399,17 +2407,63 @@ void handleNewExciteTouch(int touch, int coords[2], bool assignmentNegated=false
 	touchControlManager->bindTouchToExcitation(touch, channelIndex);
 }
 
-void handleNewListenerTouch(int touch, int coords[2], bool assignmentNegated=false) {
+void handleNewListenerTouch(int touch, int coords[2], bool assignmentNegated) {
 	if(assignmentNegated) {
 		hideChannelListener(channelIndex);
 		touchControlManager->removeControl(touch);
 		return;
 	}
 
-	moveAreaListener(channelIndex, coords[0], coords[1]);
-	touchControlManager->storeListenerCoords(channelIndex, coords);
+	moveChannelListener(channelIndex, coords);
 	touchControlManager->bindTouchToListener(touch, channelIndex);
 }
+
+void handleBoundaryTouch(int touch, int coords[2], bool assignmentNegated) {
+	if(assignmentNegated) {
+		hyperDrumSynth->resetCellType(coords[0], coords[1]);
+		// when we remove boundary, we keep the current area
+		int touchedArea = getAreaIndex(coords[0], coords[1]);
+		hyperDrumSynth->setAreaEraserPosition(touchedArea, coords[0], coords[1]);
+	}
+	else
+		setBoundaryCell(coords[0], coords[1]);
+	
+	touchControlManager->bindTouchToBoundary(touch); // we refresh this even if this is not a new boundary touch
+	touchControlManager->storeBoundaryTouchCoords(touch, coords);
+}
+
+bool checkExcitationSelection(int touch, int coords[2], bool assignmentNegated) {
+	int touchedExciteChannel;
+	if( hasSelectedChannelExcitation(coords, touchedExciteChannel) ) {
+		if(assignmentNegated) {
+			removeChannelExcitation(touchedExciteChannel);
+			touchControlManager->removeControl(touch);
+			return true;
+		}
+
+		forceExcitationAssignment(touch, touchedExciteChannel); 
+		return true;
+	}
+
+	return false;
+}
+
+bool checkCrossChannelListenerSelection(int touch, int coords[2], bool assignmentNegated) {
+	int touchedListenerChannel;
+	if( hasSelectedChannelListener(coords, touchedListenerChannel) ) {
+		if(assignmentNegated) {
+			hideChannelListener(touchedListenerChannel);
+			touchControlManager->removeControl(touch);
+			return true;
+		}
+
+		forceListenerAssignment(touch, touchedListenerChannel); 
+		return true;
+	}
+
+	return false;
+}
+
 
 void handleNewTouch2(int touch, int coords[2]) {
 	// printf("---------New touch %d\n", touch);
@@ -2420,29 +2474,11 @@ void handleNewTouch2(int touch, int coords[2]) {
 	// check pending assignment and try to assign
 	ControlAssignment assignment = assignControl(touch);
 
-	int touchedExciteChannel;
-	if( hasSelectedChannelExcitation(coords, touchedExciteChannel) ) {
-		if(assignment.negated) {
-			removeChannelExcitation(touchedExciteChannel);
-			touchControlManager->removeControl(touch);
-			return;
-		}
-
-		forceExcitationAssignment(touch, touchedExciteChannel); 
+	if( checkExcitationSelection(touch, coords, assignment.negated) )
 		return;
-	}
 
-	int touchedListenerChannel;
-	if( hasSelectedChannelListener(coords, touchedListenerChannel) ) {
-		if(assignment.negated) {
-			hideChannelListener(touchedListenerChannel);
-			touchControlManager->removeControl(touch);
-			return;
-		}
-
-		forceListenerAssignment(touch, touchedListenerChannel); 
+	if( checkCrossChannelListenerSelection(touch, coords, assignment.negated) )
 		return;
-	}
 
 	// deal with successful assignments
 	if( touchControlManager->getControl(touch, assignment) ) {
@@ -2464,7 +2500,7 @@ void handleNewTouch2(int touch, int coords[2]) {
 				return;
 			}
 			else if(assignment.control == control_motion_boundary) {
-				//int touchedArea = getAreaIndex(coord[0], coord[1]);
+				handleBoundaryTouch(touch, coords, assignment.negated);
 				return;
 			}
 		
@@ -2474,13 +2510,7 @@ void handleNewTouch2(int touch, int coords[2]) {
 		printf("Warning! Unknown control assignment %d - %d on touch %d\n", assignment.controlType, assignment.control, touch);
 		return;
 	}
-
-
-
-
-
 }
-
 
 
 void handleTouchDrag2(int touch, int coords[2]) {
@@ -2505,17 +2535,8 @@ void handleTouchDrag2(int touch, int coords[2]) {
 			// was on boundary and it's not anymore and still unbound! assignment is not complete
 			// we can do the same operations done in handleNewTouch()
 			if(touchWasOnBoundary && boundExciteChannel==-1) {
-
-				int touchedExciteChannel;
-				if( hasSelectedChannelExcitation(coords, touchedExciteChannel) ) {
-					if(assignment.negated) {
-						removeChannelExcitation(touchedExciteChannel);
-						touchControlManager->removeControl(touch);
-						return;
-					}
-					forceExcitationAssignment(touch, touchedExciteChannel); 
+				if( checkExcitationSelection(touch, coords, assignment.negated) )
 					return;
-				}
 
 				handleNewExciteTouch(touch, coords, assignment.negated); // then, we can treat this as a new touch
 				return;
@@ -2540,17 +2561,10 @@ void handleTouchDrag2(int touch, int coords[2]) {
 			// was on boundary and it's not anymore and still unbound! assignment is not complete
 			// we can do the same operations done in handleNewTouch()
 			if(touchWasOnBoundary && boundListenerChannel==-1) {
-				int touchedListenerChannel;
-				if( hasSelectedChannelListener(coords, touchedListenerChannel) ) {
-					if(assignment.negated) {
-						hideChannelListener(touchedListenerChannel);
-						touchControlManager->removeControl(touch);
-						return;
-					}
-					forceExcitationAssignment(touch, touchedListenerChannel); 
+				if( checkCrossChannelListenerSelection(touch, coords, assignment.negated) )
 					return;
-				}
-				handleNewListenerTouch(touch, coords); // then, we can treat this as a new touch
+
+				handleNewListenerTouch(touch, coords, assignment.negated); // then, we can treat this as a new touch
 				return;
 			}
 
@@ -2559,8 +2573,11 @@ void handleTouchDrag2(int touch, int coords[2]) {
 				return;
 			}
 
-			moveAreaListener(boundListenerChannel, coords[0], coords[1]);
+			moveChannelListener(boundListenerChannel, coords);
 			touchControlManager->storeListenerCoords(boundListenerChannel, coords);
+		}
+		else if(assignment.control == control_motion_boundary) {
+			handleBoundaryTouch(touch, coords, assignment.negated);
 		}
 	}
 }
@@ -2592,9 +2609,14 @@ void handleTouchRelease2(int touch) {
 				if(boundChannel != -1)
 					touchControlManager->unbindTouchFromListener(touch);
 			}
+			else if(assignment.control == control_motion_boundary) {
+				pair<int, int> coords = touchControlManager->getBoundaryTouchCoords(touch);
+				int touchedArea = getAreaIndex(coords.first, coords.second);
+				hyperDrumSynth->hideAreaEraser(touchedArea);
+				touchControlManager->unbindTouchFromBoundary(touch);
+			}
 		}
-		//else
-
+	
 		touchControlManager->removeControl(touch);
 	}
 
@@ -3275,11 +3297,26 @@ void mouseLeftRelease(/* float xpos, float ypos */) {
 
 void mouseRightPressOrDrag(float xpos, float ypos) {
 	// turn to domain coords (:
-	int coord[2] = {(int)xpos, (int)ypos};
-	getCellDomainCoords(coord); // input is relative to window
+	int coords[2] = {(int)xpos, (int)ypos};
+	getCellDomainCoords(coords); // input is relative to window
 
-	resetCell(coord[0], coord[1]);
+	hyperDrumSynth->resetCellType(coords[0], coords[1]);
+	// when we remove boundary, we keep the current area
+	int touchedArea = getAreaIndex(coords[0], coords[1]);
+	hyperDrumSynth->setAreaEraserPosition(touchedArea, coords[0], coords[1]);
 }
+
+// this is special call that does not comply with general touch rules!
+// it emulates a touch with negated boundary control
+void mouseRightRelease(float xpos, float ypos) {
+	// turn to domain coords (:
+	int coords[2] = {(int)xpos, (int)ypos};
+	getCellDomainCoords(coords); // input is relative to window
+
+	int touchedArea = getAreaIndex(coords[0], coords[1]);
+	hyperDrumSynth->hideAreaEraser(touchedArea);
+}
+
 
 // mouse buttons actions
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
@@ -3322,6 +3359,7 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 			//printf("right mouse pressed\n");
 		} else if(action == GLFW_RELEASE) {
 			mouseRightPressed = false; // stop dragging
+			mouseRightRelease(mousePos[0], mousePos[1]);
 			//printf("right mouse released\n");
 		}
     }
