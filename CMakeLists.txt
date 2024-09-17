@@ -63,5 +63,5 @@ endif()
 
 add_executable(${BIN_NAME} ${ALL_SRC_FILES})
 
-target_link_libraries(${BIN_NAME} -pthread -march=native -ffast-math glfw3 GLEW GLU GL Xrandr Xxf86vm Xi Xinerama X11 Xcursor dl m asound sndfile fftw3f fftw3)
+target_link_libraries(${BIN_NAME} -pthread -march=native -ffast-math glfw GLEW GLU GL Xrandr Xxf86vm Xi Xinerama X11 Xcursor dl m asound sndfile fftw3f fftw3)
 
