@@ -23,8 +23,8 @@ private:
 	void render(float sampleRate, int numOfSamples, int numOutChannels, double **framebufferOut, int numInChannels, double **framebufferIn);
 	void cleanUpRender();
 
-	void fromRawToFloat_int(snd_pcm_uframes_t offset, int numSamples);
-	void fromFloatToRaw_int(snd_pcm_uframes_t offset, int numSamples);
+	// void fromRawToFloat_int(snd_pcm_uframes_t offset, int numSamples);
+	// void fromFloatToRaw_int(snd_pcm_uframes_t offset, int numSamples);
 };
 
 inline void HDH_AudioEngine::addAudioModule(AudioModule *mod) {

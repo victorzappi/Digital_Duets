@@ -137,10 +137,11 @@ private:
 	float ****nextAreaListenerFragCoord;
 
 	bool doCrossfade;
-	GLint crossfade_loc;
-	float crossfade;
+	bool **updateCrossfade;
+	GLint **crossfade_loc;
+	float **crossfade;
 	float crossfadeDelta;
-	char currentDeck;
+	char **currentDeck;
 
 	// area eraser render feedback
 	GLint *areaEraserFragCoord_loc_render;

@@ -10,13 +10,13 @@ uniform vec2 deltaCoord_times3_by2;
 
 float maxVol = 20;
 
-const int maxNumOfAreas = 10;
+const int maxNumOfAreas = 8;
 uniform int numOfAreas;
 
 const int maxNumOfOutChannels = 16;
 uniform int numOfOutChannels;
 
-const int maxNumOfInChannels = 32;
+const int maxNumOfInChannels = 16;
 
 
 uniform sampler2D inputTexture;

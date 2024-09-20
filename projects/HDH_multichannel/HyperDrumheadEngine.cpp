@@ -167,23 +167,23 @@ void HDH_AudioEngine::cleanUpRender() {
 }
 
 //VIC i can use this simplified method cos i know that on this machine [which is little endian] integers are 32 bits and i am using 32 bit integers as samples!
-void HDH_AudioEngine::fromRawToFloat_int(snd_pcm_uframes_t offset, int numSamples) {
-	(void)offset; // to mute warning
-	int *insamples = (int *)capture.rawSamples;
-	for(int n = 0; n < numSamples; n++) {
-			for(unsigned int chn = 0; chn < capture.channels; chn++) {
-				capture.frameBuffer[chn][n] = insamples[n*capture.channels + chn]/double(capture.maxVal);
-			}
-	}
-}
+// void HDH_AudioEngine::fromRawToFloat_int(snd_pcm_uframes_t offset, int numSamples) {
+// 	(void)offset; // to mute warning
+// 	int *insamples = (int *)capture.rawSamples;
+// 	for(int n = 0; n < numSamples; n++) {
+// 			for(unsigned int chn = 0; chn < capture.channels; chn++) {
+// 				capture.frameBuffer[chn][n] = insamples[n*capture.channels + chn]/double(capture.maxVal);
+// 			}
+// 	}
+// }
 
-void HDH_AudioEngine::fromFloatToRaw_int(snd_pcm_uframes_t offset, int numSamples) {
-	(void)offset; // to mute warning
-	int *outsamples = (int *)playback.rawSamples;
-	for(int n = 0; n < numSamples; n++) {
-		for(unsigned int chn = 0; chn < playback.channels; chn++) {
-			outsamples[n*playback.channels + chn] = playback.frameBuffer[chn][n]*double(playback.maxVal);
-		}
-	}
-}
+// void HDH_AudioEngine::fromFloatToRaw_int(snd_pcm_uframes_t offset, int numSamples) {
+// 	(void)offset; // to mute warning
+// 	int *outsamples = (int *)playback.rawSamples;
+// 	for(int n = 0; n < numSamples; n++) {
+// 		for(unsigned int chn = 0; chn < playback.channels; chn++) {
+// 			outsamples[n*playback.channels + chn] = playback.frameBuffer[chn][n]*double(playback.maxVal);
+// 		}
+// 	}
+// }
 

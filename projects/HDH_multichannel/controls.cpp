@@ -2582,7 +2582,7 @@ void handleTouchDrag2(int touch, int coords[2]) {
 	}
 }
 
-//TODO add drawing boundaries control
+//TODO finish channel amp/changeAreaExcitationVolume() ---> check also manager class 
 // then get rid of areas
 void handleTouchRelease2(int touch) {
 	// printf("---------Released touch %d\n", touch);

@@ -13,10 +13,10 @@ out vec4 color;
 // this must be the same as the respective value defined in HyperDrumhead class or the parent class
 const int numOfStates   = 2;
 
-const int maxNumOfAreas = 10;
+const int maxNumOfAreas = 8;
 uniform int numOfAreas;
 
-const int maxNumOfInChannels = 32;
+const int maxNumOfInChannels = 16;
 
 
 const int maxNumOfOutChannels = 16;
@@ -61,7 +61,7 @@ uniform vec2 areaListenerFragCoord[maxNumOfAreas][maxNumOfOutChannels][numOfStat
 
 uniform vec2 areaListenerBFragCoord[maxNumOfAreas][maxNumOfOutChannels][numOfStates];
 
-uniform float crossfade;  
+uniform float crossfade[maxNumOfAreas][maxNumOfOutChannels];  
 
 uniform vec3 audioWriteCoords;   // (audioWritePixelcoordX, audioWritePixelcoordX, RBGAindex)
 // splits as:
@@ -198,12 +198,12 @@ vec4 saveAudio() {
 				audioA = sampleAudio(areaListenerFragCoord[i][k][readState]);
 				audioB = sampleAudio(areaListenerBFragCoord[i][k][readState]);
 				
-				retColor[channel] += audioA*(1-crossfade) + audioB*crossfade;
+				retColor[channel] += audioA*(1-crossfade[i][k]) + audioB*crossfade[i][k];
 				
 				//retColor[channel] += sampleAudio(areaListenerFragCoord[i][readState]);
 			}
 		}
-		writeYCoord += audioWriteChannelOffset; // move down to the next channel
+		writeYCoord += audioWriteChannelOffset; // move up to the next channel
 	}
 	return retColor;
 }
