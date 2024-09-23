@@ -292,10 +292,10 @@ void key_callback(GLFWwindow *, int key, int scancode, int action, int mods) {
 				break;
 
 			case GLFW_KEY_I:
-				changeAreaExcitationVolume(1/(1.0 + altIsPressed*9));
+				changeAreaExcitationAmp(1/(1.0 + altIsPressed*9));
 				break;
 			case GLFW_KEY_U:
-				changeAreaExcitationVolume(-1/(1.0 + altIsPressed*9));
+				changeAreaExcitationAmp(-1/(1.0 + altIsPressed*9));
 				break;
 
 			case GLFW_KEY_Y:

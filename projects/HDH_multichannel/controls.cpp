@@ -100,8 +100,8 @@ double deltaLowPassFreq[AREA_NUM];
 
 extern float areaDamp[AREA_NUM];
 double areaDeltaDamp[AREA_NUM];
-const float maxDamp = 0.1;//0.05;
-const float minDamp = 0;
+extern const float maxDamp;
+extern const float minDamp;
 
 extern float areaProp[AREA_NUM];
 double areaDeltaProp[AREA_NUM];
@@ -381,8 +381,10 @@ void setMasterVolume(double v, bool exp) {
 
 	//printf("masterVolume %f\n", masterVolume);
 
-	for(int i=0; i<AREA_NUM; i++)
-		hyperDrumSynth->setAreaExcitationVolume(i, areaExcitationVol[i]*masterVolume);
+	// for(int i=0; i<AREA_NUM; i++)
+	// 	hyperDrumSynth->setAreaExcitationVolume(i, areaExcitationVol[i]*masterVolume);
+	for(int i=0; i<excitationChannels; i++)
+		hyperDrumSynth->setAreaExcitationVolume(i, touchControlManager->getChannelExcitationAmp(i)*masterVolume);
 }
 
 //----------------------------------------
@@ -789,6 +791,18 @@ void changeAreaExcitationVolume(double delta) {
 	hyperDrumSynth->setAreaExcitationVolume(areaIndex, areaExcitationVol[areaIndex]*exChannelModulatedVol[areaIndex]*masterVolume); // modulated volume to make this transition smooth while on continuous excitation
 	printf("Area %d excitation volume: %.2f [master volume: %2.f]\n", areaIndex, areaExcitationVol[areaIndex], masterVolume);
 }
+
+// this 'change' function permanently changes vol of current area and is designed to work via keyboard control
+void changeAreaExcitationAmp(double delta) {
+	double channelAmp = touchControlManager->getChannelExcitationAmp(channelIndex);
+	double nextAmp = channelAmp  + deltaVolume*delta;
+	nextAmp = (nextAmp>=0) ? nextAmp : 0;
+	touchControlManager->setChannelExcitationAmp(channelIndex, nextAmp);
+
+	hyperDrumSynth->setAreaExcitationVolume(channelIndex, nextAmp*exChannelModulatedVol[areaIndex]*masterVolume); // modulated volume to make this transition smooth while on continuous excitation
+	printf("Channel %d excitation amp: %.2f [master volume: %2.f]\n", channelIndex, nextAmp, masterVolume);
+}
+
 
 template <typename T>
 void clampValue(T &val, T min, T max) {
@@ -2582,8 +2596,6 @@ void handleTouchDrag2(int touch, int coords[2]) {
 	}
 }
 
-//TODO finish channel amp/changeAreaExcitationVolume() ---> check also manager class 
-// then get rid of areas
 void handleTouchRelease2(int touch) {
 	// printf("---------Released touch %d\n", touch);
 

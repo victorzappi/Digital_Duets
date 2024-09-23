@@ -71,7 +71,9 @@ int drumExId = 0;
 float excitationLevel  = 0.17;//0.17;	// maximum audio level that can be reached; once passed to the synth, can't be changed
 float excitationVol    = 1; // volume allows to move in [0, excitationLevel], with nice INTERPOLATION [which might be a problem in frequency response simulations]
 double areaExcitationVol[AREA_NUM] = {1};
-float areaDamp[AREA_NUM] = {0.001};
+float maxDamp = 0.1;//0.05;
+float minDamp = 0;
+float areaDamp[AREA_NUM] = {maxDamp};
 float areaProp[AREA_NUM] = {0.5}; // will call this rho, it is related to CFL num...as follows
 double areaExLowPassFreq[AREA_NUM] = {19000.0};
 double areaExRelease[AREA_NUM] = {0.5};
@@ -171,10 +173,10 @@ vector<float> presetCyclerProbabilities = {
 //----------------------------------------
 // application channels
 //----------------------------------------
-unsigned short exInChannels = 8; 
+unsigned short exInChannels = 2; //8; 
 unsigned short exInChnOffset = 0;
 unsigned short hdhInChannels = exInChannels;
-unsigned short hdhdOutChannels = 8;
+unsigned short hdhdOutChannels = 2; //8;
 unsigned short hdhOutChnOffset= 0; //@VIC 2;
 
 
@@ -182,16 +184,16 @@ unsigned short hdhOutChnOffset= 0; //@VIC 2;
 // audio variables
 //----------------------------------------
 string playbackCardName = "";//@VIC "Scarlett 18i8 USB";
-snd_pcm_format_t playbackFormat = SND_PCM_FORMAT_S24_3LE;    	// sample playbackFormat
-unsigned int playbackChannels = 22;//@VIC 8;	    // count of playbackChannels
+snd_pcm_format_t playbackFormat = SND_PCM_FORMAT_S16; //SND_PCM_FORMAT_S24_3LE;    	// sample playbackFormat
+unsigned int playbackChannels = 2; //22;	    // count of playbackChannels
 string captureCardName = "";//@VIC "Scarlett 18i8 USB";
-snd_pcm_format_t captureFormat = SND_PCM_FORMAT_S24_3LE;    	// sample captureFormat
-unsigned int captureChannels = 22;//@VIC 10;	    // count of playbackChannels
+snd_pcm_format_t captureFormat = SND_PCM_FORMAT_S16; //SND_PCM_FORMAT_S24_3LE;    	// sample captureFormat
+unsigned int captureChannels = 2; //22;	    // count of playbackChannels
 unsigned int rate = 44100;      // stream rate, extern
-int period_size = 128;//128;     		// period length in frames
+int period_size = 512;//128;     		// period length in frames
 int buffer_size = 2*period_size;		    // ring buffer length in frames [contains period]
 
-string device = "hw:1,0"; //"hw:1,0"; // playback device, use only if wanna specify both card and device
+string device = "hw:0,0"; //"hw:1,0"; // playback device, use only if wanna specify both card and device
 
 
 

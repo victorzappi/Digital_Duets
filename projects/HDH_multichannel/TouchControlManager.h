@@ -70,9 +70,8 @@ public:
     vector< pair<int, int> > getExcitationCoords();
     bool removeExcitation(int channel);
     int isExcitationPresent(int channel);
-    //TODO implement these
-    void setChannelExcitationAmp(double amp);
-    double getChannelExcitationAmp();
+    void setChannelExcitationAmp(int channel, double amp);
+    double getChannelExcitationAmp(int channel);
     
     void bindTouchToExcitation(int touch, int channel);
     int getTouchExcitationBinding(int touch);
@@ -223,6 +222,14 @@ inline bool TouchControlManager::removeExcitation(int channel) {
 
 inline int TouchControlManager::isExcitationPresent(int channel) {
     return channelExcitationPresent[channel];
+}
+
+inline void TouchControlManager::setChannelExcitationAmp(int channel, double amp) {
+    channelExcitatioAmp[channel] = amp;
+}
+
+inline double TouchControlManager::getChannelExcitationAmp(int channel) {
+    return channelExcitatioAmp[channel];
 }
 
 inline void TouchControlManager::bindTouchToExcitation(int touch, int channel) {

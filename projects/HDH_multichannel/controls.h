@@ -72,6 +72,7 @@ void changeAreaDamp(float deltaD/*, bool update=true, int area=-1*/);
 void changeAreaPropPressRange(float delta);
 void changeAreaProp(float deltaP/*, bool update=true, int area=-1*/);
 void changeAreaExcitationVolume(double delta);
+void changeAreaExcitationAmp(double delta);
 void changeAreaLowPassFilterFreq(float deltaF);
 void savePreset();
 
